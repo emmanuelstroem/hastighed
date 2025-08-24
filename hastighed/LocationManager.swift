@@ -4,6 +4,7 @@ import MapKit
 import SwiftUI
 import Combine
 import os.log
+import GeoToolbox
 
 @MainActor
 class LocationManager: NSObject, ObservableObject {
@@ -61,22 +62,26 @@ class LocationManager: NSObject, ObservableObject {
     }
     
     private func updateStreetName(for location: CLLocation) {
-        // Use CLGeocoder for reliable reverse geocoding (still the recommended approach)
-        // This is NOT deprecated for reverse geocoding - only the old completion handler style is deprecated
+        // Use modern MapKit reverse geocoding for iOS 26
+        
         Task {
             do {
-                let geocoder = CLGeocoder()
-                let placemarks = try await geocoder.reverseGeocodeLocation(location)
-                
-                if let placemark = placemarks.first {
-                    let streetName = extractStreetNameFromPlacemark(placemark)
-                    
-                    await MainActor.run {
-                        if streetName != self.currentStreetName && !streetName.isEmpty {
-                            self.currentStreetName = streetName
-                            // Store in UserDefaults as specified in requirements
-                            UserDefaults.standard.set(streetName, forKey: "currentStreetName")
-                            self.logger.info("Street name updated: \(streetName)")
+                // Get street name
+                if let request = MKReverseGeocodingRequest(location: location) {
+                    let mapItems = try await request.mapItems
+                    if let item = mapItems.first {
+                        // Access address via new MKAddress properties
+                        let full = item.address?.fullAddress
+                        let short = item.address?.shortAddress
+                        
+                        let streetName = short ?? full ?? "Unknown street"
+                        await MainActor.run {
+                            if streetName != self.currentStreetName && !streetName.isEmpty {
+                                self.currentStreetName = streetName
+                                // Store in UserDefaults as specified in requirements
+                                UserDefaults.standard.set(streetName, forKey: "currentStreetName")
+                                self.logger.info("Street name updated: \(streetName)")
+                            }
                         }
                     }
                 }
@@ -87,52 +92,10 @@ class LocationManager: NSObject, ObservableObject {
                 }
             }
         }
-    }
-    
-    private func extractStreetNameFromPlacemark(_ placemark: CLPlacemark) -> String {
-        // Get street name directly from the placemark properties
-        var addressComponents: [String] = []
-        
-        // Add street number if available
-        if let streetNumber = placemark.subThoroughfare, !streetNumber.isEmpty {
-            addressComponents.append(streetNumber)
-        }
-        
-        // Add street name if available
-        if let streetName = placemark.thoroughfare, !streetName.isEmpty {
-            addressComponents.append(streetName)
-            
-            // Return the combined street address
-            if !addressComponents.isEmpty {
-                return addressComponents.joined(separator: " ")
             }
-        }
-        
-        // If no street name, try to construct from coordinates
-        if let location = placemark.location {
-            return String(format: "Location %.6f, %.6f", location.coordinate.latitude, location.coordinate.longitude)
-        }
-        
-        return "Unknown Street"
     }
     
-    private func logLocationUpdate(_ location: CLLocation) {
-        let coordinates = location.coordinate
-        let accuracy = location.horizontalAccuracy
-        let speed = location.speed
-        let timestamp = location.timestamp
-        
-        logger.info("Location Update - Lat: \(String(format: "%.6f", coordinates.latitude)), Lon: \(String(format: "%.6f", coordinates.longitude)), Accuracy: \(String(format: "%.1f", accuracy))m, Speed: \(String(format: "%.1f", speed))m/s, Time: \(timestamp)")
-        
-        // Add to coordinate history (keep last 100 points)
-        coordinateHistory.append(coordinates)
-        if coordinateHistory.count > 100 {
-            coordinateHistory.removeFirst()
-        }
-    }
-}
-
-// MARK: - CLLocationManagerDelegate
+    // MARK: - CLLocationManagerDelegate
 extension LocationManager: CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorizationStatus = manager.authorizationStatus
@@ -156,9 +119,6 @@ extension LocationManager: CLLocationManagerDelegate {
         
         currentLocation = location
         currentSpeed = location.speed >= 0 ? location.speed : 0.0
-        
-        // Log the location update
-        logLocationUpdate(location)
         
         // Update street name when location changes
         updateStreetName(for: location)

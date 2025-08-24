@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		14D4E8272E5B7EF000395EE0 /* GEOSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 14D4E8262E5B7EF000395EE0 /* GEOSwift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		149D71782E5A1879000584BE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +33,22 @@
 		149D71812E5A1879000584BE /* hastighedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hastighedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		149D726C2E5B469B000584BE /* Exceptions for "hastighed" folder in "Compile Sources" phase from "hastighed" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 149D71642E5A1878000584BE /* Sources */;
+			membershipExceptions = (
+				osm/denmark.geojson,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		149D716A2E5A1878000584BE /* hastighed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				149D726C2E5B469B000584BE /* Exceptions for "hastighed" folder in "Compile Sources" phase from "hastighed" target */,
+			);
 			path = hastighed;
 			sourceTree = "<group>";
 		};
@@ -52,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				14D4E8272E5B7EF000395EE0 /* GEOSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +130,7 @@
 			);
 			name = hastighed;
 			packageProductDependencies = (
+				14D4E8262E5B7EF000395EE0 /* GEOSwift */,
 			);
 			productName = hastighed;
 			productReference = 149D71682E5A1878000584BE /* hastighed.app */;
@@ -195,6 +214,9 @@
 			);
 			mainGroup = 149D715F2E5A1878000584BE;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				14D4E8252E5B7EF000395EE0 /* XCRemoteSwiftPackageReference "GEOSwift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 149D71692E5A1878000584BE /* Products */;
 			projectDirPath = "";
@@ -582,6 +604,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		14D4E8252E5B7EF000395EE0 /* XCRemoteSwiftPackageReference "GEOSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GEOSwift/GEOSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		14D4E8262E5B7EF000395EE0 /* GEOSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 14D4E8252E5B7EF000395EE0 /* XCRemoteSwiftPackageReference "GEOSwift" */;
+			productName = GEOSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 149D71602E5A1878000584BE /* Project object */;
 }

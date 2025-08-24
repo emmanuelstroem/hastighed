@@ -31,6 +31,10 @@ struct HomeView: View {
         .onDisappear {
             locationManager.stopLocationUpdates()
         }
+        .onTapGesture(count: 2) {
+            // Double tap to refresh speed limit (for testing)
+            locationManager.refreshSpeedLimit()
+        }
     }
     
     // MARK: - Portrait Layout
@@ -55,18 +59,39 @@ struct HomeView: View {
             
             Spacer()
             
-            // Street Name
-            VStack(spacing: 8) {
-                Text("Current Street")
-                    .font(.caption)
-                    .foregroundColor(.gray)
+            // Street Name and Speed Limit
+            VStack(spacing: 20) {
+                // Street Name
+                VStack(spacing: 8) {
+                    Text("Current Street")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    Text(locationManager.currentStreetName.isEmpty ? "Acquiring location..." : locationManager.currentStreetName)
+                        .font(.title3)
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .padding(.horizontal, 20)
+                }
                 
-                Text(locationManager.currentStreetName.isEmpty ? "Acquiring location..." : locationManager.currentStreetName)
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .padding(.horizontal, 20)
+                // Speed Limit
+                VStack(spacing: 8) {
+                    Text("Speed Limit")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    if let speedLimit = locationManager.currentSpeedLimit {
+                        Text("\(speedLimit) km/h")
+                            .font(.title)
+                            .foregroundColor(.green)
+                            .fontWeight(.bold)
+                    } else {
+                        Text("Detecting...")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                }
             }
             .padding(.bottom, 40)
         }
@@ -141,15 +166,22 @@ struct HomeView: View {
                         .lineLimit(3)
                 }
                 
-                // Speed Limit Placeholder (for Phase 2)
+                // Speed Limit Display
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Speed Limit")
                         .font(.headline)
                         .foregroundColor(.white)
                     
-                    Text("Coming in Phase 2")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+                    if let speedLimit = locationManager.currentSpeedLimit {
+                        Text("\(speedLimit) km/h")
+                            .font(.title2)
+                            .foregroundColor(.green)
+                            .fontWeight(.bold)
+                    } else {
+                        Text("Detecting...")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
                 }
                 
                 Spacer()

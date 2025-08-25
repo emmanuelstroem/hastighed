@@ -154,6 +154,21 @@ struct HomeView: View {
     private func adaptiveLayout(geometry: GeometryProxy) -> some View {
         let landscape = isLandscape(geometry)
         let layout = landscape ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
+        let totalWidth = geometry.size.width
+        let totalHeight = geometry.size.height
+        let primaryTotal = landscape ? totalWidth : totalHeight
+        let primaryLarge = primaryTotal * 0.8
+        let primarySmall = primaryTotal * 0.2
+
+        // Containers along the primary axis (width in landscape, height in portrait)
+        let dialContainerWidth = landscape ? primaryLarge : totalWidth
+        let dialContainerHeight = landscape ? totalHeight : primaryLarge
+        let signContainerWidth = landscape ? primarySmall : totalWidth
+        let signContainerHeight = landscape ? totalHeight : primarySmall
+
+        // Control rendered sizes inside containers
+        let dialSize = min(dialContainerWidth, dialContainerHeight) * 0.92
+        let signSize = min(signContainerWidth, signContainerHeight) * 0.8
 
         ZStack(alignment: .bottom) {
             layout {
@@ -163,30 +178,26 @@ struct HomeView: View {
                         SpeedDialView(
                             speedKmh: locationManager.currentSpeed * 3.6,
                             maxSpeedKmh: maxSpeedKmh,
-                            size: landscape
-                                ? min(geometry.size.height * 0.7, geometry.size.width * 0.4)
-                                : min(geometry.size.width * 0.7, geometry.size.height * 0.45)
+                            size: dialSize
                         )
                         .matchedGeometryEffect(id: "speedDial", in: layoutNamespace)
                         .contentTransition(.identity)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: dialContainerWidth, height: dialContainerHeight)
 
                 // Speed Limit Sign
                 ZStack {
                     if showSpeedLimitSign {
                         SpeedLimitSignView(
                             speedLimit: locationManager.currentSpeedLimit,
-                            size: landscape
-                                ? min(geometry.size.height * 0.5, geometry.size.width * 0.25)
-                                : min(geometry.size.width * 0.5, geometry.size.height * 0.35)
+                            size: signSize
                         )
                         .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace)
                         .contentTransition(.identity)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: signContainerWidth, height: signContainerHeight)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 

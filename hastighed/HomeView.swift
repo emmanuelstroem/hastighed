@@ -10,8 +10,8 @@ struct HomeView: View {
     @AppStorage("maxSpeedKmh") private var maxSpeedKmh: Double = 201
     @State private var showingSettings = false
     
-    private var isLandscape: Bool {
-        horizontalSizeClass == .regular && verticalSizeClass == .compact
+    private func isLandscape(_ geometry: GeometryProxy) -> Bool {
+        geometry.size.width > geometry.size.height
     }
     
     var body: some View {
@@ -21,8 +21,8 @@ struct HomeView: View {
                 Color.black
                     .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    if isLandscape {
+                Group {
+                    if isLandscape(geometry) {
                         landscapeLayout(geometry: geometry)
                     } else {
                         portraitLayout(geometry: geometry)
@@ -72,30 +72,34 @@ struct HomeView: View {
     // MARK: - Portrait Layout
     @ViewBuilder
     private func portraitLayout(geometry: GeometryProxy) -> some View {
-        VStack(spacing: 40) {
-            Spacer()
-            VStack(alignment: .center, spacing: 24) {
+        VStack(spacing: 0) {
+            // Top: Speed Dial (takes half vertically)
+            ZStack {
                 if showSpeedometer {
                     SpeedDialView(
                         speedKmh: locationManager.currentSpeed * 3.6,
                         maxSpeedKmh: maxSpeedKmh,
-                        size: min(300, geometry.size.width * 0.55)
-                    )
-                    .transition(.opacity)
-                }
-                if showSpeedLimitSign {
-                    SpeedLimitSignView(
-                        speedLimit: locationManager.currentSpeedLimit,
-                        size: min(150, geometry.size.width * 0.35)
+                        size: min(geometry.size.width * 0.7, geometry.size.height * 0.45)
                     )
                 }
             }
-            .padding(.bottom, 40)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Bottom: Speed Limit sign (takes the other half)
+            ZStack {
+                if showSpeedLimitSign {
+                    SpeedLimitSignView(
+                        speedLimit: locationManager.currentSpeedLimit,
+                        size: min(geometry.size.width * 0.5, geometry.size.height * 0.35)
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         // Debug overlay (live-updating since it observes locationManager)
         .overlay(alignment: .topLeading) {
             if showDebugOverlay {
-                DebugInfoView(locationManager: locationManager)
+                DebugInfoView(locationManager: locationManager, isCompact: true)
             }
         }
     }
@@ -103,36 +107,47 @@ struct HomeView: View {
     // MARK: - Landscape Layout (CarPlay Ultra style)
     @ViewBuilder
     private func landscapeLayout(geometry: GeometryProxy) -> some View {
-        HStack(spacing: 28) {
-            // Landscape: side-by-side — speed (left) and speed-limit sign (right)
-            HStack(spacing: 40) {
-                // Speed dial/number (hero)
+        VStack(spacing: 8) {
+            // Main row equally split
+            HStack(spacing: 0) {
                 ZStack {
                     if showSpeedometer {
                         SpeedDialView(
                             speedKmh: locationManager.currentSpeed * 3.6,
                             maxSpeedKmh: maxSpeedKmh,
-                            size: min(300, geometry.size.height * 0.5)
+                            size: min(geometry.size.height * 0.7, geometry.size.width * 0.4)
                         )
                     }
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // Speed-limit sign
-                if showSpeedLimitSign {
-                    SpeedLimitSignView(speedLimit: locationManager.currentSpeedLimit ?? 0,
-                                        size: min(150, geometry.size.height * 0.35))
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Spacer().frame(maxWidth: .infinity)
+                ZStack {
+                    if showSpeedLimitSign {
+                        SpeedLimitSignView(
+                            speedLimit: locationManager.currentSpeedLimit,
+                            size: min(geometry.size.height * 0.5, geometry.size.width * 0.25)
+                        )
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Bottom strip: Street name only, takes space needed
+            HStack {
+                Spacer(minLength: 0)
+                Text(locationManager.currentStreetName.isEmpty ? "" : locationManager.currentStreetName)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
         }
         // Debug overlay for landscape as well
         .overlay(alignment: .topLeading) {
             if showDebugOverlay {
-                DebugInfoView(locationManager: locationManager)
+                DebugInfoView(locationManager: locationManager, isCompact: true)
             }
         }
     }

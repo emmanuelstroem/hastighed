@@ -3,6 +3,7 @@ import CoreLocation
 
 struct DebugInfoView: View {
     @ObservedObject var locationManager: LocationManager
+    var isCompact: Bool = false
 
     private var coordinateText: String {
         if let loc = locationManager.currentLocation {
@@ -27,15 +28,27 @@ struct DebugInfoView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(coordinateText)
-            Text(addressText)
-            Text(speedLimitText)
+        Group {
+            if isCompact {
+                Text("\(coordinateText) • \(addressText) • \(speedLimitText)")
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(coordinateText)
+                    Text(addressText)
+                    Text(speedLimitText)
+                }
+            }
         }
         .font(.system(.footnote, design: .monospaced))
         .foregroundColor(.white)
         .padding(10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(
+            isCompact
+            ? AnyShapeStyle(Color.black.opacity(0.75))
+            : AnyShapeStyle(.ultraThinMaterial)
+        , in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .shadow(radius: 6)
         .padding(8)
         .accessibilityElement(children: .combine)

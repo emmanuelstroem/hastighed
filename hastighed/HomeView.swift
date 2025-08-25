@@ -9,6 +9,7 @@ struct HomeView: View {
     @AppStorage("showSpeedLimitSign") private var showSpeedLimitSign: Bool = true
     @AppStorage("maxSpeedKmh") private var maxSpeedKmh: Double = 201
     @State private var showingSettings = false
+    @Namespace private var layoutNamespace
     
     private func isLandscape(_ geometry: GeometryProxy) -> Bool {
         geometry.size.width > geometry.size.height
@@ -21,13 +22,7 @@ struct HomeView: View {
                 Color.black
                     .ignoresSafeArea()
                 
-                Group {
-                    if isLandscape(geometry) {
-                        landscapeLayout(geometry: geometry)
-                    } else {
-                        portraitLayout(geometry: geometry)
-                    }
-                }
+                adaptiveLayout(geometry: geometry)
             }
         }
         .onAppear {
@@ -64,6 +59,8 @@ struct HomeView: View {
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
+        .animation(.easeInOut(duration: 0.35), value: horizontalSizeClass)
+        .animation(.easeInOut(duration: 0.35), value: verticalSizeClass)
     }
     
     // MARK: - Debug Methods
@@ -145,6 +142,65 @@ struct HomeView: View {
             .padding(.horizontal, 12)
         }
         // Debug overlay for landscape as well
+        .overlay(alignment: .topLeading) {
+            if showDebugOverlay {
+                DebugInfoView(locationManager: locationManager, isCompact: true)
+            }
+        }
+    }
+
+    // MARK: - Adaptive Layout with smooth orientation animation
+    @ViewBuilder
+    private func adaptiveLayout(geometry: GeometryProxy) -> some View {
+        let landscape = isLandscape(geometry)
+        let layout = landscape ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
+
+        ZStack(alignment: .bottom) {
+            layout {
+                // Speed Dial
+                ZStack {
+                    if showSpeedometer {
+                        SpeedDialView(
+                            speedKmh: locationManager.currentSpeed * 3.6,
+                            maxSpeedKmh: maxSpeedKmh,
+                            size: landscape
+                                ? min(geometry.size.height * 0.7, geometry.size.width * 0.4)
+                                : min(geometry.size.width * 0.7, geometry.size.height * 0.45)
+                        )
+                        .matchedGeometryEffect(id: "speedDial", in: layoutNamespace)
+                        .contentTransition(.identity)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // Speed Limit Sign
+                ZStack {
+                    if showSpeedLimitSign {
+                        SpeedLimitSignView(
+                            speedLimit: locationManager.currentSpeedLimit,
+                            size: landscape
+                                ? min(geometry.size.height * 0.5, geometry.size.width * 0.25)
+                                : min(geometry.size.width * 0.5, geometry.size.height * 0.35)
+                        )
+                        .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace)
+                        .contentTransition(.identity)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Street name overlay at bottom (landscape only)
+            Text(locationManager.currentStreetName)
+                .font(.headline)
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.black.opacity(0.2), in: Capsule())
+                .opacity(landscape && !locationManager.currentStreetName.isEmpty ? 1 : 0)
+                .animation(.easeInOut(duration: 0.25), value: landscape)
+        }
         .overlay(alignment: .topLeading) {
             if showDebugOverlay {
                 DebugInfoView(locationManager: locationManager, isCompact: true)

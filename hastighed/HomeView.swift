@@ -172,9 +172,9 @@ struct HomeView: View {
 
         ZStack(alignment: .bottom) {
             layout {
-                // Speed Dial
-                ZStack {
-                    if showSpeedometer {
+                if showSpeedometer && showSpeedLimitSign {
+                    // Both visible: 80% / 20%
+                    ZStack {
                         SpeedDialView(
                             speedKmh: locationManager.currentSpeed * 3.6,
                             maxSpeedKmh: maxSpeedKmh,
@@ -183,12 +183,9 @@ struct HomeView: View {
                         .matchedGeometryEffect(id: "speedDial", in: layoutNamespace)
                         .contentTransition(.identity)
                     }
-                }
-                .frame(width: dialContainerWidth, height: dialContainerHeight)
+                    .frame(width: dialContainerWidth, height: dialContainerHeight)
 
-                // Speed Limit Sign
-                ZStack {
-                    if showSpeedLimitSign {
+                    ZStack {
                         SpeedLimitSignView(
                             speedLimit: locationManager.currentSpeedLimit,
                             size: signSize
@@ -196,8 +193,31 @@ struct HomeView: View {
                         .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace)
                         .contentTransition(.identity)
                     }
+                    .frame(width: signContainerWidth, height: signContainerHeight)
+                } else if showSpeedometer {
+                    // Only dial visible: center it
+                    ZStack {
+                        SpeedDialView(
+                            speedKmh: locationManager.currentSpeed * 3.6,
+                            maxSpeedKmh: maxSpeedKmh,
+                            size: min(totalWidth, totalHeight) * 0.92
+                        )
+                        .matchedGeometryEffect(id: "speedDial", in: layoutNamespace)
+                        .contentTransition(.identity)
+                    }
+                    .frame(width: totalWidth, height: totalHeight)
+                } else if showSpeedLimitSign {
+                    // Only speed limit visible: center it
+                    ZStack {
+                        SpeedLimitSignView(
+                            speedLimit: locationManager.currentSpeedLimit,
+                            size: min(totalWidth, totalHeight) * 0.6
+                        )
+                        .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace)
+                        .contentTransition(.identity)
+                    }
+                    .frame(width: totalWidth, height: totalHeight)
                 }
-                .frame(width: signContainerWidth, height: signContainerHeight)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 

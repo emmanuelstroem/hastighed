@@ -10,8 +10,10 @@ import GeoToolbox
 class LocationManager: NSObject, ObservableObject {
     private let locationManager = CLLocationManager()
     private let logger = Logger(subsystem: "com.eopio.hastighed", category: "LocationManager")
-    private let osmService = OSMService()
     private var cancellables = Set<AnyCancellable>()
+    
+    // Use GeoPackage-based speed limit service (offline)
+    let gpkgService = GeoPackageSpeedLimitService()
     
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published var currentLocation: CLLocation?
@@ -25,7 +27,7 @@ class LocationManager: NSObject, ObservableObject {
     override init() {
         super.init()
         setupLocationManager()
-        setupOSMService()
+    setupGeoPackageService()
     }
     
     private func setupLocationManager() {
@@ -35,36 +37,19 @@ class LocationManager: NSObject, ObservableObject {
         locationManager.allowsBackgroundLocationUpdates = false
     }
     
-    private func setupOSMService() {
-        // Observe OSM service for speed limit updates
-        osmService.$currentSpeedLimit
+    private func setupGeoPackageService() {
+        // Observe service for speed limit updates
+        gpkgService.$currentSpeedLimit
             .receive(on: DispatchQueue.main)
             .sink { [weak self] speedLimit in
                 self?.currentSpeedLimit = speedLimit
+                print("[UI] Speed limit updated ->", speedLimit as Any)
             }
             .store(in: &cancellables)
         
         // Load any previously stored speed limit
-        if let storedSpeedLimit = osmService.getStoredSpeedLimit() {
+        if let storedSpeedLimit = gpkgService.getStoredSpeedLimit() {
             currentSpeedLimit = storedSpeedLimit
-        }
-        
-        // Listen for speed limit check requests from OSMService
-        NotificationCenter.default.addObserver(
-            forName: .speedLimitCheckRequested,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleSpeedLimitCheckRequest()
-            }
-        }
-    }
-    
-    private func handleSpeedLimitCheckRequest() {
-        if let location = currentLocation {
-            logger.info("Speed limit check requested by OSMService")
-            osmService.querySpeedLimit(for: location)
         }
     }
     
@@ -94,14 +79,14 @@ class LocationManager: NSObject, ObservableObject {
         // Immediately query speed limit if we have a location, or request one if we don't
         if let location = currentLocation {
             logger.info("Immediate speed limit query on app launch")
-            osmService.querySpeedLimitImmediately(for: location)
+            gpkgService.querySpeedLimitImmediately(for: location)
         } else {
             // If no location yet, request one immediately
             logger.info("Requesting immediate location for speed limit query on app launch")
             locationManager.requestLocation()
         }
         
-        // Note: Speed limit queries are now handled by OSMService based on street changes and 10-second intervals
+        // Note: Speed limit queries are handled by GeoPackage service and triggered on updates
     }
     
     func stopLocationUpdates() {
@@ -112,7 +97,7 @@ class LocationManager: NSObject, ObservableObject {
     
     func refreshSpeedLimit() {
         if let location = currentLocation {
-            osmService.querySpeedLimit(for: location)
+            gpkgService.querySpeedLimitImmediately(for: location)
         }
     }
     
@@ -129,7 +114,7 @@ class LocationManager: NSObject, ObservableObject {
                         let full = item.address?.fullAddress
                         let short = item.address?.shortAddress
                         
-                        let streetName = short ?? full ?? "Unkn own street"
+            let streetName = short ?? full ?? "Unknown street"
                         await MainActor.run {
                             if streetName != self.currentStreetName && !streetName.isEmpty {
                                 self.currentStreetName = streetName
@@ -137,8 +122,8 @@ class LocationManager: NSObject, ObservableObject {
                                 UserDefaults.standard.set(streetName, forKey: "currentStreetName")
                                 self.logger.info("Street name updated: \(streetName)")
                                 
-                                // Update OSMService with new street name and trigger speed limit check
-                                self.osmService.updateStreetName(streetName)
+                // Update GeoPackage service with new street name (optional)
+                self.gpkgService.updateStreetName(streetName)
                             }
                         }
                     }
@@ -177,20 +162,18 @@ extension LocationManager: CLLocationManagerDelegate {
         
         currentLocation = location
         currentSpeed = location.speed >= 0 ? location.speed : 0.0
+        logger.info("Location update lat=\(location.coordinate.latitude, privacy: .public) lon=\(location.coordinate.longitude, privacy: .public) speed=\(self.currentSpeed, privacy: .public)")
         
-        // Update OSMService with current location
-        osmService.updateCurrentLocation(location)
+    // Update service with current location
+    gpkgService.updateCurrentLocation(location)
         
-        // If this is the first location update (app launch), query speed limit immediately
-        if currentSpeedLimit == nil {
-            logger.info("First location update on app launch - querying speed limit immediately")
-            osmService.querySpeedLimitImmediately(for: location)
-        }
+    // Query speed limit on each update to keep UI fresh
+    gpkgService.querySpeedLimitImmediately(for: location)
         
-        // Update street name when location changes (this will trigger speed limit check if street changed)
+    // Update street name when location changes (optional for gpkg)
         updateStreetName(for: location)
         
-        // Note: Speed limit queries are now handled by OSMService based on street changes and 10-second intervals
+    // Note: Speed limit queries are handled by GeoPackage service
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {

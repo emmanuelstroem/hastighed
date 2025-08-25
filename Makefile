@@ -1,12 +1,13 @@
 # Makefile for Hastighed iOS App
 # This Makefile provides build targets for the iOS app
 
-.PHONY: help build clean test install-deps
+.PHONY: help build build-simulator clean test install-deps run
 
 # Default target
 help:
 	@echo "Available targets:"
 	@echo "  build        - Build the iOS app using Xcode"
+	@echo "  build-simulator - Build the iOS app for Simulator"
 	@echo "  clean        - Clean build artifacts"
 	@echo "  test         - Run tests"
 	@echo "  install-deps - Install Swift dependencies"

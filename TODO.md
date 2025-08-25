@@ -33,6 +33,8 @@
 - [x] **COMPLETED: Immediate speed limit display on app launch**
 - [x] **COMPLETED: Fix periodic speed limit checking when street hasn't changed**
 - [x] **COMPLETED: Fix search radius issue for speed limit queries (5m → 100m → 10m optimized)**
+- [x] **COMPLETED: Implement MBTiles support for efficient speed limit queries (replaces 8.6M entry search)**
+- [x] **COMPLETED: Optimize MBTiles zoom levels and implement multi-zoom fallback for better coverage**
 
 ### Speed Limit Accuracy
 - [x] Query actual road segments instead of generated data
@@ -71,3 +73,31 @@
 - [ ] Implement speed limit alerts
 - [ ] Add route planning with speed limit consideration
 - [ ] Enhanced map visualization
+
+## Completed Tasks
+
+- [x] **Integrate GeoJSON parsing instead of PBF** - Replaced PBF with GeoJSON for better compatibility
+- [x] **Replace test data with actual parsed GeoJSON data** - Implemented real data parsing
+- [x] **Implement 5-meter radius for speed limit queries** - Added precise radius-based searching
+- [x] **Implement robust GeoJSON file loading (documents/bundle fallback)** - Added fallback loading mechanism
+- [x] **Provide clear instructions for GeoJSON file placement** - Documented file placement requirements
+- [x] **Show speed limit at current street address** - Implemented street-based speed limit display
+- [x] **Listen to address changes** - Added address change detection
+- [x] **If street is the same, check speed limit every 10 seconds** - Implemented periodic checking for same street
+- [x] **If street is different, check speed limit immediately** - Added immediate checking for new streets
+- [x] **If speed limit is different than current one, update UI immediately** - Implemented smart UI updates
+- [x] **Otherwise, just write a log message** - Added logging for unchanged speed limits
+- [x] **Implement notification system between LocationManager and OSMService** - Added notification-based communication
+- [x] **Add timer-based periodic checking for same street** - Implemented timer-based updates
+- [x] **Optimize update frequency to prevent unnecessary queries** - Reduced unnecessary API calls
+- [x] **Immediate speed limit display on app launch** - Added launch-time speed limit query
+- [x] **Fix periodic speed limit checking when street hasn't changed** - Resolved unnecessary periodic updates
+- [x] **Fix search radius issue for speed limit queries (5m → 100m → 10m optimized)** - Optimized search radius
+- [x] **Implement MBTiles support for efficient speed limit queries (replaces 8.6M entry search)** - Replaced GeoJSON with MBTiles
+- [x] **Optimize MBTiles zoom levels and implement multi-zoom fallback for better coverage** - Added zoom level optimization
+- [x] **Fix tile coordinate calculation for accurate MBTiles queries** - Fixed Y-coordinate calculation using Web Mercator projection
+- [x] **Implement closest tile selection instead of center tile fallback** - Added intelligent tile selection based on actual location proximity
+- [x] **Enhance speed limit parsing patterns for better data extraction** - Added support for km/h, mph formats and improved regex patterns
+- [x] **Clean up unused code and simplify MBTiles implementation** - Removed multi-zoom fallback logic, unused debugging code, and streamlined the service for better performance and maintainability
+- [x] **Enhance binary vector tile parsing support** - Added comprehensive parsing for both text-based and binary vector tile formats, eliminating the "Could not convert tile data to string" warning and improving speed limit extraction from MBTiles
+- [x] **Implement intelligent multi-zoom fallback strategy** - Added automatic fallback to different zoom levels when calculated coordinates are outside available bounds, with intelligent bounds checking and tile validation for more accurate speed limit detection

@@ -34,11 +34,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		149D726C2E5B469B000584BE /* Exceptions for "hastighed" folder in "Compile Sources" phase from "hastighed" target */ = {
+		147CA4FE2E5CDD3800477ED8 /* Exceptions for "hastighed" folder in "Compile Sources" phase from "hastighed" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			buildPhase = 149D71642E5A1878000584BE /* Sources */;
 			membershipExceptions = (
-				osm/denmark.geojson,
+				gpkg/denmark.gpkg,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -47,7 +47,7 @@
 		149D716A2E5A1878000584BE /* hastighed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				149D726C2E5B469B000584BE /* Exceptions for "hastighed" folder in "Compile Sources" phase from "hastighed" target */,
+				147CA4FE2E5CDD3800477ED8 /* Exceptions for "hastighed" folder in "Compile Sources" phase from "hastighed" target */,
 			);
 			path = hastighed;
 			sourceTree = "<group>";

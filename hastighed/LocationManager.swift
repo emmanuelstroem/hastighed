@@ -22,7 +22,7 @@ class LocationManager: NSObject, ObservableObject {
     @Published var isLocationEnabled: Bool = false
     @Published var errorMessage: String?
     @Published var coordinateHistory: [CLLocationCoordinate2D] = []
-    @Published var currentSpeedLimit: Int?
+    @Published var currentSpeedLimit: Int? = 0
     
     override init() {
         super.init()

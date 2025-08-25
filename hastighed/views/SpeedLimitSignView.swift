@@ -11,7 +11,7 @@ struct SpeedLimitSignView: View {
                     Circle()
                         .fill(Color.white)
                     Circle()
-                        .stroke(Color.red, lineWidth: max(8, size * 0.14))
+                        .stroke(Color.red, lineWidth: max(8, size * 0.05))
                     Text("\(v)")
                         .font(.system(size: size * 0.42, weight: .bold, design: .default))
                         .foregroundColor(.black)
@@ -31,7 +31,9 @@ struct SpeedLimitSignView: View {
 #Preview {
     VStack(spacing: 20) {
         SpeedLimitSignView(speedLimit: 50)
+        SpeedLimitSignView(speedLimit: 60)
         SpeedLimitSignView(speedLimit: 110, size: 120)
+        SpeedLimitSignView(speedLimit: 130, size: 120)
     }
     .padding()
     .background(Color.black)

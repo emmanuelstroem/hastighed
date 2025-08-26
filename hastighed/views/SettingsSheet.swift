@@ -8,10 +8,17 @@ struct SettingsSheet: View {
     @AppStorage("maxSpeedKmh") private var maxSpeedKmh: Double = 201
     @AppStorage("keepScreenAwake") private var keepScreenAwake: Bool = true
     @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
+    @AppStorage("speedResponse") private var speedResponseRaw: String = SpeedResponse.balanced.rawValue
     private var speedUnits: Binding<SpeedUnits> {
         Binding<SpeedUnits>(
             get: { SpeedUnits(rawValue: speedUnitsRaw) ?? .kmh },
             set: { speedUnitsRaw = $0.rawValue }
+        )
+    }
+    private var speedResponse: Binding<SpeedResponse> {
+        Binding<SpeedResponse>(
+            get: { SpeedResponse(rawValue: speedResponseRaw) ?? .balanced },
+            set: { speedResponseRaw = $0.rawValue }
         )
     }
 
@@ -25,6 +32,11 @@ struct SettingsSheet: View {
                     Picker("Units", selection: speedUnits) {
                         ForEach(SpeedUnits.allCases) { unit in
                             Text(unit.displayName).tag(unit)
+                        }
+                    }
+                    Picker("Speedometer response", selection: speedResponse) {
+                        ForEach(SpeedResponse.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
                         }
                     }
                     HStack {

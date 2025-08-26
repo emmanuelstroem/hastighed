@@ -30,8 +30,13 @@ class LocationManager: NSObject, ObservableObject {
     @Published var currentSpeedLimitRawValue: Int?
     @Published var currentSpeedLimitRawUnit: String?
     @Published var showPermissionAlert: Bool = false
-    @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh
-        .rawValue
+    @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
+    @AppStorage("speedResponse") private var speedResponseRaw: String = SpeedResponse.balanced.rawValue
+    private var speedResponse: SpeedResponse { SpeedResponse(rawValue: speedResponseRaw) ?? .balanced }
+
+    // Speed smoothing and reliability helpers
+    private var lastLocationForSpeed: CLLocation?
+    private var smoothedSpeedMps: Double = 0.0
 
     override init() {
         super.init()
@@ -41,8 +46,9 @@ class LocationManager: NSObject, ObservableObject {
 
     private func setupLocationManager() {
         locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 1.0  // Update every 1 meter
+        locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        locationManager.activityType = .automotiveNavigation
+        locationManager.distanceFilter = speedResponse.distanceFilterMeters
         locationManager.allowsBackgroundLocationUpdates = false
     }
 
@@ -227,7 +233,42 @@ extension LocationManager: CLLocationManagerDelegate {
         guard let location = locations.last else { return }
 
         currentLocation = location
-        currentSpeed = location.speed >= 0 ? location.speed : 0.0
+
+        // Compute a more stable speed estimate
+        let rawMps = max(location.speed, 0.0)
+        var derivedMps = rawMps
+        if let prev = lastLocationForSpeed {
+            let dt = max(location.timestamp.timeIntervalSince(prev.timestamp), 0.001)
+            let d = location.distance(from: prev)
+            derivedMps = d / dt
+        }
+
+        var measuredMps = rawMps
+        if #available(iOS 13.4, *) {
+            // Prefer derived speed when reported speed has low accuracy
+            if location.speedAccuracy.isNaN == false && location.speedAccuracy > 1.0 {
+                measuredMps = derivedMps
+            }
+        } else {
+            measuredMps = derivedMps
+        }
+
+        // Exponential moving average to smooth jitter (configurable)
+        let alpha = speedResponse.emaAlpha
+        smoothedSpeedMps = alpha * measuredMps + (1.0 - alpha) * smoothedSpeedMps
+
+        // Zero out tiny jitter when we haven't moved beyond accuracy bounds
+        if let prev = lastLocationForSpeed {
+            let displacement = location.distance(from: prev)
+            let threshold = max(speedResponse.displacementThresholdMeters, location.horizontalAccuracy)
+            if displacement < threshold && smoothedSpeedMps < speedResponse.clampUnderMetersPerSecond {
+                smoothedSpeedMps = 0.0
+            }
+        }
+
+        // Keep currentSpeed in meters per second; UI converts via UnitSpeed
+        currentSpeed = smoothedSpeedMps
+        lastLocationForSpeed = location
         logger.info(
             "Location update lat=\(location.coordinate.latitude, privacy: .public) lon=\(location.coordinate.longitude, privacy: .public) speed=\(self.currentSpeed, privacy: .public)"
         )

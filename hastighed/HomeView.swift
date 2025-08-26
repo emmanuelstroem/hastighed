@@ -86,7 +86,7 @@ struct HomeView: View {
             ZStack {
                 if showSpeedometer {
                     SpeedDialView(
-                        speedKmh: locationManager.currentSpeed * 3.6,
+                        speedKmh: Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: UnitSpeed.kilometersPerHour).value,
                         maxSpeedKmh: maxSpeedKmh,
                         size: min(
                             geometry.size.width * 0.7,
@@ -129,7 +129,7 @@ struct HomeView: View {
                 ZStack {
                     if showSpeedometer {
                         SpeedDialView(
-                            speedKmh: locationManager.currentSpeed * 3.6,
+                            speedKmh: Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: UnitSpeed.kilometersPerHour).value,
                             maxSpeedKmh: maxSpeedKmh,
                             size: min(
                                 geometry.size.height * 0.7,
@@ -221,7 +221,7 @@ struct HomeView: View {
                         // Dial (80%)
                         ZStack {
                             SpeedDialView(
-                                speedKmh: locationManager.currentSpeed * 3.6,
+                                speedKmh: Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: UnitSpeed.kilometersPerHour).value,
                                 maxSpeedKmh: maxSpeedKmh,
                                 size: dialSize
                             )

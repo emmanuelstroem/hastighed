@@ -3,6 +3,7 @@ import MapKit
 
 struct MapView: View {
     @ObservedObject var locationManager: LocationManager
+    @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
     @State private var position: MapCameraPosition = .region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 55.6761, longitude: 12.5683), // Copenhagen default
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
@@ -19,7 +20,9 @@ struct MapView: View {
                         .foregroundColor(.white)
                     
                     if locationManager.currentLocation != nil {
-                        Text("GPS Active • \(String(format: "%.1f", locationManager.currentSpeed * 3.6)) km/h")
+                        let units = SpeedUnits(rawValue: speedUnitsRaw) ?? .kmh
+                        let value = Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: units.unitSpeed).value
+                        Text("GPS Active • \(String(format: "%.1f", value)) \(units.displayName)")
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(.green)
                     } else {
@@ -138,7 +141,9 @@ struct MapView: View {
                                 .font(.system(size: 12))
                                 .foregroundColor(.blue)
                             
-                            Text("\(String(format: "%.1f", locationManager.currentSpeed * 3.6)) km/h")
+                            let units = SpeedUnits(rawValue: speedUnitsRaw) ?? .kmh
+                            let value = Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: units.unitSpeed).value
+                            Text("\(String(format: "%.1f", value)) \(units.displayName)")
                                 .font(.system(size: 12, weight: .medium, design: .rounded))
                                 .foregroundColor(.blue)
                         }

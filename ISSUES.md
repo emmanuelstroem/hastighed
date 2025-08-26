@@ -174,3 +174,30 @@
 - **Cleaner Code**: Removed ~100 lines of unused debugging and multi-zoom logic
 - **Better Performance**: Eliminated unnecessary database queries and coordinate calculations
 - **Maintainability**: Code is now easier to understand and modify
+
+## Speed Accuracy and Stationary Jitter
+
+- **Status**: Mitigated ✅
+- **Observed**: Speedometer shows ~3–6 km/h when picking up the phone or while stationary.
+- **Cause**: Normal GPS jitter and brief orientation/position changes can yield small non‑zero speeds from Core Location, especially when `speedAccuracy` is poor.
+- **Mitigation Implemented**:
+  - Use navigation‑grade settings: `desiredAccuracy = kCLLocationAccuracyBestForNavigation`, `activityType = .automotiveNavigation`, `distanceFilter = 3`.
+  - Prefer derived speed (distance/time between consecutive fixes) when `speedAccuracy` is poor; otherwise use reported `speed`.
+  - Smooth with an exponential moving average (EMA) with alpha = 0.25 to damp spikes.
+  - Clamp tiny jitter to zero when displacement since last fix < max(5 m, horizontalAccuracy) and smoothed speed < 1.0 m/s (~3.6 km/h).
+- **Road Accuracy Consideration**: The clamp only triggers under small displacement and low speed. While driving, displacements per fix are typically well above 5–10 m, so live road speed remains instant and unaffected.
+- **Trade‑offs / Tuning**:
+  - Lower the displacement threshold (e.g., 2–3 m) for even snappier transitions.
+  - Raise EMA alpha (e.g., 0.4–0.5) or use a dynamic alpha that increases with speed for faster response.
+  - Gate with Core Motion (`CMMotionActivity`) to confidently zero out when the device is stationary or walking.
+  - Replace EMA with a lightweight Kalman filter if needed.
+
+## Testing Summary
+
+- **Unit Tests**:
+  - `SpeedDialViewTests`: verifies severity/color logic including 5% buffer and unit handling.
+  - `LocationManagerPermissionTests`: verifies permission alert behavior on denied status.
+- **UI Tests**:
+  - `hastighedUITests/SpeedometerUITests.swift`: launches a test harness view (`SpeedDialDemoHarnessView`) via environment variables to deterministically validate the speedometer display and color logic paths.
+- **Accessibility for Tests**:
+  - Added stable identifiers (e.g., `speedValue`, `speedDial`) to make UI assertions reliable.

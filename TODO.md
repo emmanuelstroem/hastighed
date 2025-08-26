@@ -74,6 +74,17 @@
 - [ ] Add route planning with speed limit consideration
 - [ ] Enhanced map visualization
 
+### Speed Accuracy & Smoothing
+- [ ] Add setting: "Speedometer response" (Instant vs Smooth)
+- [ ] Expose thresholds (EMA alpha, clamp m/s, displacement meters) in a config file
+- [ ] Integrate Core Motion `CMMotionActivity` to gate stationary/walking vs driving
+- [ ] Consider Kalman filter for speed estimation (replace/augment EMA)
+- [ ] Make `distanceFilter` adaptive based on speed and accuracy
+- [ ] Add unit tests for speed smoothing helper (extract logic for testability)
+- [ ] Add UI test cases simulating jitter via the harness to validate clamping
+- [ ] Set `pausesLocationUpdatesAutomatically = false` and measure impact
+- [ ] Add in‑app diagnostics toggle to log raw vs derived vs smoothed speed
+
 ## Completed Tasks
 
 - [x] **Integrate GeoJSON parsing instead of PBF** - Replaced PBF with GeoJSON for better compatibility

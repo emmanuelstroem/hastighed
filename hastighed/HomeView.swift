@@ -6,22 +6,23 @@ struct HomeView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @AppStorage("showDebugOverlay") private var showDebugOverlay: Bool = true
     @AppStorage("showSpeedometer") private var showSpeedometer: Bool = true
-    @AppStorage("showSpeedLimitSign") private var showSpeedLimitSign: Bool = true
+    @AppStorage("showSpeedLimitSign") private var showSpeedLimitSign: Bool =
+        true
     @AppStorage("maxSpeedKmh") private var maxSpeedKmh: Double = 201
     @State private var showingSettings = false
     @Namespace private var layoutNamespace
-    
+
     private func isLandscape(_ geometry: GeometryProxy) -> Bool {
         geometry.size.width > geometry.size.height
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 // Background
                 Color.black
                     .ignoresSafeArea()
-                
+
                 adaptiveLayout(geometry: geometry)
             }
         }
@@ -53,19 +54,21 @@ struct HomeView: View {
             .padding([.top, .trailing], 12)
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(showDebugOverlay: $showDebugOverlay,
-                          showSpeedometer: $showSpeedometer,
-                          showSpeedLimitSign: $showSpeedLimitSign)
+            SettingsSheet(
+                showDebugOverlay: $showDebugOverlay,
+                showSpeedometer: $showSpeedometer,
+                showSpeedLimitSign: $showSpeedLimitSign
+            )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
         .animation(.easeInOut(duration: 0.35), value: horizontalSizeClass)
         .animation(.easeInOut(duration: 0.35), value: verticalSizeClass)
     }
-    
+
     // MARK: - Debug Methods
     private func testMBTilesDatabase() {}
-    
+
     // MARK: - Portrait Layout
     @ViewBuilder
     private func portraitLayout(geometry: GeometryProxy) -> some View {
@@ -76,7 +79,10 @@ struct HomeView: View {
                     SpeedDialView(
                         speedKmh: locationManager.currentSpeed * 3.6,
                         maxSpeedKmh: maxSpeedKmh,
-                        size: min(geometry.size.width * 0.7, geometry.size.height * 0.45)
+                        size: min(
+                            geometry.size.width * 0.7,
+                            geometry.size.height * 0.45
+                        )
                     )
                 }
             }
@@ -87,7 +93,10 @@ struct HomeView: View {
                 if showSpeedLimitSign {
                     SpeedLimitSignView(
                         speedLimit: locationManager.currentSpeedLimit,
-                        size: min(geometry.size.width * 0.5, geometry.size.height * 0.35)
+                        size: min(
+                            geometry.size.width * 0.5,
+                            geometry.size.height * 0.35
+                        )
                     )
                 }
             }
@@ -100,7 +109,7 @@ struct HomeView: View {
             }
         }
     }
-    
+
     // MARK: - Landscape Layout (CarPlay Ultra style)
     @ViewBuilder
     private func landscapeLayout(geometry: GeometryProxy) -> some View {
@@ -112,7 +121,10 @@ struct HomeView: View {
                         SpeedDialView(
                             speedKmh: locationManager.currentSpeed * 3.6,
                             maxSpeedKmh: maxSpeedKmh,
-                            size: min(geometry.size.height * 0.7, geometry.size.width * 0.4)
+                            size: min(
+                                geometry.size.height * 0.7,
+                                geometry.size.width * 0.4
+                            )
                         )
                     }
                 }
@@ -122,7 +134,10 @@ struct HomeView: View {
                     if showSpeedLimitSign {
                         SpeedLimitSignView(
                             speedLimit: locationManager.currentSpeedLimit,
-                            size: min(geometry.size.height * 0.5, geometry.size.width * 0.25)
+                            size: min(
+                                geometry.size.height * 0.5,
+                                geometry.size.width * 0.25
+                            )
                         )
                     }
                 }
@@ -133,10 +148,13 @@ struct HomeView: View {
             // Bottom strip: Street name only, takes space needed
             HStack {
                 Spacer(minLength: 0)
-                Text(locationManager.currentStreetName.isEmpty ? "" : locationManager.currentStreetName)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+                Text(
+                    locationManager.currentStreetName.isEmpty
+                        ? "" : locationManager.currentStreetName
+                )
+                .font(.headline)
+                .foregroundColor(.white)
+                .lineLimit(1)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
@@ -153,7 +171,10 @@ struct HomeView: View {
     @ViewBuilder
     private func adaptiveLayout(geometry: GeometryProxy) -> some View {
         let landscape = isLandscape(geometry)
-        let layout = landscape ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
+        let layout =
+            landscape
+            ? AnyLayout(HStackLayout(spacing: 0))
+            : AnyLayout(VStackLayout(spacing: 0))
         let totalWidth = geometry.size.width
         let totalHeight = geometry.size.height
         let primaryTotal = landscape ? totalWidth : totalHeight
@@ -175,10 +196,14 @@ struct HomeView: View {
                 if showSpeedometer && showSpeedLimitSign {
                     // Both visible: place around the same center using offsets for a pivot illusion
                     ZStack {
-                        let dialOffset = landscape ? CGSize(width: -(primarySmall / 2), height: 0)
-                                                   : CGSize(width: 0, height: -(primarySmall / 2))
-                        let signOffset = landscape ? CGSize(width: (primaryLarge / 2), height: 0)
-                                                   : CGSize(width: 0, height: (primaryLarge / 2))
+                        let dialOffset =
+                            landscape
+                            ? CGSize(width: -(primarySmall / 2), height: 0)
+                            : CGSize(width: 0, height: -(primarySmall / 2))
+                        let signOffset =
+                            landscape
+                            ? CGSize(width: (primaryLarge / 2), height: 0)
+                            : CGSize(width: 0, height: (primaryLarge / 2))
 
                         // Dial (80%)
                         ZStack {
@@ -187,10 +212,18 @@ struct HomeView: View {
                                 maxSpeedKmh: maxSpeedKmh,
                                 size: dialSize
                             )
-                            .matchedGeometryEffect(id: "speedDial", in: layoutNamespace, properties: .position, anchor: .center)
+                            .matchedGeometryEffect(
+                                id: "speedDial",
+                                in: layoutNamespace,
+                                properties: .position,
+                                anchor: .center
+                            )
                             .contentTransition(.identity)
                         }
-                        .frame(width: dialContainerWidth, height: dialContainerHeight)
+                        .frame(
+                            width: dialContainerWidth,
+                            height: dialContainerHeight
+                        )
                         .offset(dialOffset)
                         .animation(nil, value: dialContainerWidth)
                         .animation(nil, value: dialContainerHeight)
@@ -201,10 +234,18 @@ struct HomeView: View {
                                 speedLimit: locationManager.currentSpeedLimit,
                                 size: signSize
                             )
-                            .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace, properties: .position, anchor: .center)
+                            .matchedGeometryEffect(
+                                id: "speedLimit",
+                                in: layoutNamespace,
+                                properties: .position,
+                                anchor: .center
+                            )
                             .contentTransition(.identity)
                         }
-                        .frame(width: signContainerWidth, height: signContainerHeight)
+                        .frame(
+                            width: signContainerWidth,
+                            height: signContainerHeight
+                        )
                         .offset(signOffset)
                         .animation(nil, value: signContainerWidth)
                         .animation(nil, value: signContainerHeight)
@@ -218,7 +259,12 @@ struct HomeView: View {
                             maxSpeedKmh: maxSpeedKmh,
                             size: min(totalWidth, totalHeight) * 0.92
                         )
-                        .matchedGeometryEffect(id: "speedDial", in: layoutNamespace, properties: .position, anchor: .center)
+                        .matchedGeometryEffect(
+                            id: "speedDial",
+                            in: layoutNamespace,
+                            properties: .position,
+                            anchor: .center
+                        )
                         .contentTransition(.identity)
                     }
                     .frame(width: totalWidth, height: totalHeight)
@@ -230,7 +276,12 @@ struct HomeView: View {
                             speedLimit: locationManager.currentSpeedLimit,
                             size: min(totalWidth, totalHeight) * 0.6
                         )
-                        .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace, properties: .position, anchor: .center)
+                        .matchedGeometryEffect(
+                            id: "speedLimit",
+                            in: layoutNamespace,
+                            properties: .position,
+                            anchor: .center
+                        )
                         .contentTransition(.identity)
                     }
                     .frame(width: totalWidth, height: totalHeight)
@@ -247,7 +298,10 @@ struct HomeView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(Color.black.opacity(0.2), in: Capsule())
-                .opacity(landscape && !locationManager.currentStreetName.isEmpty ? 1 : 0)
+                .opacity(
+                    landscape && !locationManager.currentStreetName.isEmpty
+                        ? 1 : 0
+                )
                 .animation(.easeInOut(duration: 0.25), value: landscape)
         }
         .overlay(alignment: .topLeading) {

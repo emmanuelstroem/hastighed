@@ -1,20 +1,23 @@
-import Foundation
+import Combine
 import CoreLocation
+import Foundation
+import GeoToolbox
 import MapKit
 import SwiftUI
-import Combine
 import os.log
-import GeoToolbox
 
 @MainActor
 class LocationManager: NSObject, ObservableObject {
     private let locationManager = CLLocationManager()
-    private let logger = Logger(subsystem: "com.eopio.hastighed", category: "LocationManager")
+    private let logger = Logger(
+        subsystem: "com.eopio.hastighed",
+        category: "LocationManager"
+    )
     private var cancellables = Set<AnyCancellable>()
-    
+
     // Use GeoPackage-based speed limit service (offline)
     let gpkgService = GeoPackageSpeedLimitService()
-    
+
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published var currentLocation: CLLocation?
     @Published var currentStreetName: String = ""
@@ -25,113 +28,126 @@ class LocationManager: NSObject, ObservableObject {
     @Published var currentSpeedLimit: Int? = 0
     @Published var currentSpeedLimitRawValue: Int?
     @Published var currentSpeedLimitRawUnit: String?
-    @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
-    
+    @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh
+        .rawValue
+
     override init() {
         super.init()
         setupLocationManager()
-    setupGeoPackageService()
+        setupGeoPackageService()
     }
-    
+
     private func setupLocationManager() {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 1.0 // Update every 1 meter
+        locationManager.distanceFilter = 1.0  // Update every 1 meter
         locationManager.allowsBackgroundLocationUpdates = false
     }
-    
+
     private func setupGeoPackageService() {
         // Observe service for speed limit updates
-        Publishers.CombineLatest3(gpkgService.$currentSpeedLimit, gpkgService.$currentSpeedLimitRawValue, gpkgService.$currentSpeedLimitRawUnit)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] speedLimitKmh, rawVal, rawUnit in
-                guard let self else { return }
-                let units = SpeedUnits(rawValue: self.speedUnitsRaw) ?? .kmh
-                self.currentSpeedLimitRawValue = rawVal
-                self.currentSpeedLimitRawUnit = rawUnit
-                if let kmh = speedLimitKmh {
-                    switch units {
-                    case .kmh:
-                        self.currentSpeedLimit = kmh
-                    case .mph:
-                        self.currentSpeedLimit = Int((Double(kmh) * 0.621371).rounded())
-                    }
-                } else {
-                    self.currentSpeedLimit = nil
-                }
-                // Persist raw tokens for UI consumption
-                UserDefaults.standard.set(self.currentSpeedLimitRawValue, forKey: "currentSpeedLimitRawValue")
-                UserDefaults.standard.set(self.currentSpeedLimitRawUnit, forKey: "currentSpeedLimitRawUnit")
-                print("[UI] Speed limit updated ->", self.currentSpeedLimit as Any, "units=", units.displayName, "raw=", rawVal as Any, rawUnit as Any)
+        Publishers.CombineLatest3(
+            gpkgService.$currentSpeedLimit,
+            gpkgService.$currentSpeedLimitRawValue,
+            gpkgService.$currentSpeedLimitRawUnit
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] speedLimitValue, rawVal, rawUnit in
+            guard let self else { return }
+            self.currentSpeedLimitRawValue = rawVal
+            self.currentSpeedLimitRawUnit = rawUnit
+            if let value = speedLimitValue {
+                // Service already returns in selected unit; no conversion
+                self.currentSpeedLimit = value
+            } else {
+                self.currentSpeedLimit = nil
             }
-            .store(in: &cancellables)
-        
+            // Persist raw tokens for UI consumption
+            UserDefaults.standard.set(
+                self.currentSpeedLimitRawValue,
+                forKey: "currentSpeedLimitRawValue"
+            )
+            UserDefaults.standard.set(
+                self.currentSpeedLimitRawUnit,
+                forKey: "currentSpeedLimitRawUnit"
+            )
+            print(
+                "[UI] Speed limit updated ->",
+                self.currentSpeedLimit as Any,
+                "units=",
+                (SpeedUnits(rawValue: self.speedUnitsRaw) ?? .kmh).displayName,
+                "raw=",
+                rawVal as Any,
+                rawUnit as Any
+            )
+        }
+        .store(in: &cancellables)
+
         // Load any previously stored speed limit
         if let storedSpeedLimit = gpkgService.getStoredSpeedLimit() {
-            let units = SpeedUnits(rawValue: speedUnitsRaw) ?? .kmh
-            switch units {
-            case .kmh:
-                currentSpeedLimit = storedSpeedLimit
-            case .mph:
-                currentSpeedLimit = Int((Double(storedSpeedLimit) * 0.621371).rounded())
-            }
+            currentSpeedLimit = storedSpeedLimit
         }
         let storedRaw = gpkgService.getStoredSpeedLimitRaw()
         currentSpeedLimitRawValue = storedRaw.0
         currentSpeedLimitRawUnit = storedRaw.1
     }
-    
+
     func requestLocationPermission() {
         switch authorizationStatus {
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
         case .denied, .restricted:
-            errorMessage = "Location access is required for this app to function properly."
+            errorMessage =
+                "Location access is required for this app to function properly."
         case .authorizedWhenInUse, .authorizedAlways:
             startLocationUpdates()
         @unknown default:
             break
         }
     }
-    
+
     func startLocationUpdates() {
-        guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
+        guard
+            authorizationStatus == .authorizedWhenInUse
+                || authorizationStatus == .authorizedAlways
+        else {
             requestLocationPermission()
             return
         }
-        
+
         locationManager.startUpdatingLocation()
         isLocationEnabled = true
         logger.info("Location updates started")
-        
+
         // Immediately query speed limit if we have a location, or request one if we don't
         if let location = currentLocation {
             logger.info("Immediate speed limit query on app launch")
             gpkgService.querySpeedLimitImmediately(for: location)
         } else {
             // If no location yet, request one immediately
-            logger.info("Requesting immediate location for speed limit query on app launch")
+            logger.info(
+                "Requesting immediate location for speed limit query on app launch"
+            )
             locationManager.requestLocation()
         }
-        
+
         // Note: Speed limit queries are handled by GeoPackage service and triggered on updates
     }
-    
+
     func stopLocationUpdates() {
         locationManager.stopUpdatingLocation()
         isLocationEnabled = false
         logger.info("Location updates stopped")
     }
-    
+
     func refreshSpeedLimit() {
         if let location = currentLocation {
             gpkgService.querySpeedLimitImmediately(for: location)
         }
     }
-    
+
     private func updateStreetName(for location: CLLocation) {
         // Use modern MapKit reverse geocoding for iOS 26
-        
         Task {
             do {
                 // Get street name
@@ -141,36 +157,55 @@ class LocationManager: NSObject, ObservableObject {
                         // Access address via new MKAddress properties
                         let full = item.address?.fullAddress
                         let short = item.address?.shortAddress
-                        
-            let streetName = short ?? full ?? "Unknown street"
+
+                        let streetName = short ?? full ?? "Unknown street"
                         await MainActor.run {
-                            if streetName != self.currentStreetName && !streetName.isEmpty {
+                            if streetName != self.currentStreetName
+                                && !streetName.isEmpty
+                            {
                                 self.currentStreetName = streetName
                                 // Store in UserDefaults as specified in requirements
-                                UserDefaults.standard.set(streetName, forKey: "currentStreetName")
-                                self.logger.info("Street name updated: \(streetName)")
-                                
-                // Update GeoPackage service with new street name (optional)
-                self.gpkgService.updateStreetName(streetName)
+                                UserDefaults.standard.set(
+                                    streetName,
+                                    forKey: "currentStreetName"
+                                )
+                                self.logger.info(
+                                    "Street name updated: \(streetName)"
+                                )
+
+                                // Update GeoPackage service with new street name (optional)
+                                self.gpkgService.updateStreetName(streetName)
+                                // Determine units by country (mph whitelist)
+                                if let isoCode = item.placemark.isoCountryCode?.uppercased() {
+                                    let mphCountries: Set<String> = [
+                                        "US", "GB", "PR", "GU", "VI", "KY", "BS", "BZ"
+                                    ]
+                                    let selected: SpeedUnits = mphCountries.contains(isoCode) ? .mph : .kmh
+                                    UserDefaults.standard.set(selected.rawValue, forKey: "speedUnits")
+                                    self.logger.info("Units set by country \(isoCode): \(selected.displayName)")
+                                }
                             }
                         }
                     }
                 }
             } catch {
                 await MainActor.run {
-                    self.errorMessage = "Failed to get street name: \(error.localizedDescription)"
-                    self.logger.error("Geocoding failed: \(error.localizedDescription)")
+                    self.errorMessage =
+                        "Failed to get street name: \(error.localizedDescription)"
+                    self.logger.error(
+                        "Geocoding failed: \(error.localizedDescription)"
+                    )
                 }
             }
         }
-            }
     }
-    
-    // MARK: - CLLocationManagerDelegate
+}
+
+// MARK: - CLLocationManagerDelegate
 extension LocationManager: CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorizationStatus = manager.authorizationStatus
-        
+
         switch authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             startLocationUpdates()
@@ -184,31 +219,38 @@ extension LocationManager: CLLocationManagerDelegate {
             break
         }
     }
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+
+    func locationManager(
+        _ manager: CLLocationManager,
+        didUpdateLocations locations: [CLLocation]
+    ) {
         guard let location = locations.last else { return }
-        
+
         currentLocation = location
         currentSpeed = location.speed >= 0 ? location.speed : 0.0
-        logger.info("Location update lat=\(location.coordinate.latitude, privacy: .public) lon=\(location.coordinate.longitude, privacy: .public) speed=\(self.currentSpeed, privacy: .public)")
-        
-    // Update service with current location
-    gpkgService.updateCurrentLocation(location)
-        
-    // Query speed limit on each update to keep UI fresh
-    gpkgService.querySpeedLimitImmediately(for: location)
-        
-    // Update street name when location changes (optional for gpkg)
+        logger.info(
+            "Location update lat=\(location.coordinate.latitude, privacy: .public) lon=\(location.coordinate.longitude, privacy: .public) speed=\(self.currentSpeed, privacy: .public)"
+        )
+
+        // Update service with current location
+        gpkgService.updateCurrentLocation(location)
+
+        // Query speed limit on each update to keep UI fresh
+        gpkgService.querySpeedLimitImmediately(for: location)
+
+        // Update street name when location changes (optional for gpkg)
         updateStreetName(for: location)
-        
-    // Note: Speed limit queries are handled by GeoPackage service
+
+        // Note: Speed limit queries are handled by GeoPackage service
     }
-    
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+
+    func locationManager(
+        _ manager: CLLocationManager,
+        didFailWithError error: Error
+    ) {
         errorMessage = "Location error: \(error.localizedDescription)"
         isLocationEnabled = false
         logger.error("Location manager failed: \(error.localizedDescription)")
     }
-    
 
 }

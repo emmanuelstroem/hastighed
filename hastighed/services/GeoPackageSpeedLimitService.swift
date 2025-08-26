@@ -51,16 +51,16 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         }
         self.errorMessage = "GeoPackage not found: \(fileName)"
         logger.error("GeoPackage not found: \(fileName)")
-        print("[GPKG] GeoPackage not found: \(fileName)")
+        
     }
     
     private func openDB(at url: URL) {
         if sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK {
             logger.info("Opened GeoPackage at \(url.path)")
-            print("[GPKG] Opened GeoPackage at: \(url.path)")
+            
         } else {
             errorMessage = "Failed to open GeoPackage"
-            print("[GPKG] Failed to open GeoPackage at: \(url.path)")
+            
         }
     }
     
@@ -75,29 +75,26 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         let (geomCol, srsId) = getGeometryInfo(for: table)
         let pkCol = getPrimaryKeyColumn(for: table) ?? "ROWID"
 //        logger.info("GPKG query started for lat=\(location.coordinate.latitude, privacy: .public), lon=\(location.coordinate.longitude, privacy: .public) on table=\(table, privacy: .public), srs=\(srsId, privacy: .public), geom=\(geomCol, privacy: .public), pk=\(pkCol, privacy: .public)")
-//        print(String(format: "[GPKG] Query at lat=%.6f lon=%.6f table=%@ srs=%d geom=%@ pk=%@", location.coordinate.latitude, location.coordinate.longitude, table, srsId, geomCol, pkCol))
+//        
         
             // Expand search radius from min -> max (meters) until a candidate is found
         var radiusMeters = max(0.5, minSearchRadiusMeters)
         let maxMeters = max(maxSearchRadiusMeters, radiusMeters)
         while radiusMeters <= maxMeters + 1e-6 {
-            print(String(format: "[GPKG] Trying radius: %.0f m", radiusMeters))
+            
             let bbox = computeSearchBBox(forSRS: srsId, around: location.coordinate, meterRadius: radiusMeters)
-            print(String(format: "[GPKG] BBOX minX=%.6f minY=%.6f maxX=%.6f maxY=%.6f (srs=%d)", bbox.minX, bbox.minY, bbox.maxX, bbox.maxY, srsId))
+            
             if let candidate = queryNearestFeature(in: table, pkCol: pkCol, geomCol: geomCol, srsId: srsId, bbox: bbox, near: location.coordinate, searchRadiusMeters: radiusMeters) {
                 if let parsed = parseRawAndKmh(from: candidate.tags) {
                     logger.info("GPKG match row=\(candidate.rowid, privacy: .public) -> value=\(parsed.kmh ?? -1, privacy: .public)")
                     self.currentSpeedLimitRawValue = parsed.kmh
                     self.currentSpeedLimitRawUnit = nil
-                    let chosen = parsed.kmh
-                    print("[GPKG] Result: row=\(candidate.rowid) value=\(chosen?.description ?? "nil") at radius=\(Int(radiusMeters)) m")
-                    return chosen
+                    return parsed.kmh
                 }
                 if let highway = candidate.tags["highway"], let fallbackKmh = defaultSpeed(for: highway) {
                     let unitsRaw = UserDefaults.standard.string(forKey: "speedUnits") ?? SpeedUnits.kmh.rawValue
                     let isMph = (unitsRaw == SpeedUnits.mph.rawValue)
                     let value = isMph ? Int((Double(fallbackKmh) * 0.621371).rounded()) : fallbackKmh
-                    print("[GPKG] Fallback speed=\(value) \(isMph ? "mph" : "km/h") from highway=\(highway) at radius=\(Int(radiusMeters)) m")
                     self.currentSpeedLimitRawValue = nil
                     self.currentSpeedLimitRawUnit = nil
                     return value
@@ -106,7 +103,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
             radiusMeters += 1.0
         }
         logger.info("GPKG returned no speed limit for this point after expanding to \(maxMeters, privacy: .public) m")
-        print("[GPKG] No speed limit found up to \(Int(maxMeters)) m")
+        
         self.currentSpeedLimitRawValue = nil
         self.currentSpeedLimitRawUnit = nil
         return nil
@@ -180,14 +177,14 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         let maxspeedCol: String? = ["maxspeed", "max_speed", "speed_limit"].first(where: { columnSet.contains($0) })
         let highwayCol: String? = columnSet.contains("highway") ? "highway" : nil
         logger.debug("Columns detected for \(table, privacy: .public): geom=\(geomCol, privacy: .public), tagsCol=\(tagsCol ?? "none", privacy: .public), maxspeedCol=\(maxspeedCol ?? "none", privacy: .public), highwayCol=\(highwayCol ?? "none", privacy: .public)")
-        print("[GPKG] Columns: geom=\(geomCol) tagsCol=\(tagsCol ?? "none") maxspeedCol=\(maxspeedCol ?? "none") highwayCol=\(highwayCol ?? "none")")
+        
         
             // Try RTree index per GPKG spec: rtree_{table}_{geomCol}
         let rtree = "rtree_\(table)_\(geomCol)"
         var hasRtree = false
         do { hasRtree = try tableExists(name: rtree) } catch { hasRtree = false }
         logger.debug("RTree present: \(hasRtree, privacy: .public) name=\(rtree, privacy: .public)")
-        print("[GPKG] RTree: \(hasRtree ? "yes" : "no") name=\(rtree)")
+        
         
             // Build SELECT list dynamically: PK, geom, [tags?], [maxspeed?], [highway?]
         var selectCols = ["t.\(pkCol)", "t.\(geomCol)"]
@@ -217,7 +214,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
             logger.error("Failed to prepare SQL for nearest feature lookup")
-            print("[GPKG] Failed to prepare SQL for nearest feature lookup")
+            
             return nil
         }
         defer { sqlite3_finalize(stmt) }
@@ -296,7 +293,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
             }
         }
         logger.debug("Nearest feature scan complete. Rows=\(rowCount, privacy: .public), bestDist=\(bestDist, privacy: .public)")
-        print(String(format: "[GPKG] Scan complete rows=%d bestDist=%.2f m", rowCount, bestDist))
+        
             // Only accept a candidate if it's within the current search radius
         if let best, bestDist.isFinite, bestDist <= searchRadiusMeters { return best }
         return nil

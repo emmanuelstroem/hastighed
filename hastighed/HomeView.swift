@@ -8,6 +8,7 @@ struct HomeView: View {
     @AppStorage("showSpeedometer") private var showSpeedometer: Bool = true
     @AppStorage("showSpeedLimitSign") private var showSpeedLimitSign: Bool =
         true
+    @AppStorage("showStreetName") private var showStreetName: Bool = true
     @AppStorage("maxSpeedKmh") private var maxSpeedKmh: Double = 201
     @State private var showingSettings = false
     @Namespace private var layoutNamespace
@@ -57,7 +58,8 @@ struct HomeView: View {
             SettingsSheet(
                 showDebugOverlay: $showDebugOverlay,
                 showSpeedometer: $showSpeedometer,
-                showSpeedLimitSign: $showSpeedLimitSign
+                showSpeedLimitSign: $showSpeedLimitSign,
+                showStreetName: $showStreetName
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
@@ -146,18 +148,20 @@ struct HomeView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Bottom strip: Street name only, takes space needed
-            HStack {
-                Spacer(minLength: 0)
-                Text(
-                    locationManager.currentStreetName.isEmpty
-                        ? "" : locationManager.currentStreetName
-                )
-                .font(.headline)
-                .foregroundColor(.white)
-                .lineLimit(1)
-                Spacer(minLength: 0)
+            if showStreetName {
+                HStack {
+                    Spacer(minLength: 0)
+                    Text(
+                        locationManager.currentStreetName.isEmpty
+                            ? "" : locationManager.currentStreetName
+                    )
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 12)
             }
-            .padding(.horizontal, 12)
         }
         // Debug overlay for landscape as well
         .overlay(alignment: .topLeading) {
@@ -291,18 +295,20 @@ struct HomeView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Street name overlay at bottom (landscape only)
-            Text(locationManager.currentStreetName)
-                .font(.headline)
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.black.opacity(0.2), in: Capsule())
-                .opacity(
-                    landscape && !locationManager.currentStreetName.isEmpty
-                        ? 1 : 0
-                )
-                .animation(.easeInOut(duration: 0.25), value: landscape)
+            if showStreetName {
+                Text(locationManager.currentStreetName)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.2), in: Capsule())
+                    .opacity(
+                        landscape && !locationManager.currentStreetName.isEmpty
+                            ? 1 : 0
+                    )
+                    .animation(.easeInOut(duration: 0.25), value: landscape)
+            }
         }
         .overlay(alignment: .topLeading) {
             if showDebugOverlay {

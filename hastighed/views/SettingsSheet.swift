@@ -4,6 +4,7 @@ struct SettingsSheet: View {
     @Binding var showDebugOverlay: Bool
     @Binding var showSpeedometer: Bool
     @Binding var showSpeedLimitSign: Bool
+    @Binding var showStreetName: Bool
     @AppStorage("maxSpeedKmh") private var maxSpeedKmh: Double = 201
     @AppStorage("keepScreenAwake") private var keepScreenAwake: Bool = true
     @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
@@ -20,6 +21,7 @@ struct SettingsSheet: View {
                 Section(header: Text("Display")) {
                     Toggle("Speedometer", isOn: $showSpeedometer)
                     Toggle("Speed limit sign", isOn: $showSpeedLimitSign)
+                    Toggle("Street name", isOn: $showStreetName)
                     Picker("Units", selection: speedUnits) {
                         ForEach(SpeedUnits.allCases) { unit in
                             Text(unit.displayName).tag(unit)
@@ -42,5 +44,5 @@ struct SettingsSheet: View {
 }
 
 #Preview {
-    SettingsSheet(showDebugOverlay: .constant(true), showSpeedometer: .constant(true), showSpeedLimitSign: .constant(true))
+    SettingsSheet(showDebugOverlay: .constant(true), showSpeedometer: .constant(true), showSpeedLimitSign: .constant(true), showStreetName: .constant(true))
 }

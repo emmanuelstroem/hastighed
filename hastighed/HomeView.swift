@@ -173,27 +173,43 @@ struct HomeView: View {
         ZStack(alignment: .bottom) {
             layout {
                 if showSpeedometer && showSpeedLimitSign {
-                    // Both visible: 80% / 20%
+                    // Both visible: place around the same center using offsets for a pivot illusion
                     ZStack {
-                        SpeedDialView(
-                            speedKmh: locationManager.currentSpeed * 3.6,
-                            maxSpeedKmh: maxSpeedKmh,
-                            size: dialSize
-                        )
-                        .matchedGeometryEffect(id: "speedDial", in: layoutNamespace)
-                        .contentTransition(.identity)
-                    }
-                    .frame(width: dialContainerWidth, height: dialContainerHeight)
+                        let dialOffset = landscape ? CGSize(width: -(primarySmall / 2), height: 0)
+                                                   : CGSize(width: 0, height: -(primarySmall / 2))
+                        let signOffset = landscape ? CGSize(width: (primaryLarge / 2), height: 0)
+                                                   : CGSize(width: 0, height: (primaryLarge / 2))
 
-                    ZStack {
-                        SpeedLimitSignView(
-                            speedLimit: locationManager.currentSpeedLimit,
-                            size: signSize
-                        )
-                        .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace)
-                        .contentTransition(.identity)
+                        // Dial (80%)
+                        ZStack {
+                            SpeedDialView(
+                                speedKmh: locationManager.currentSpeed * 3.6,
+                                maxSpeedKmh: maxSpeedKmh,
+                                size: dialSize
+                            )
+                            .matchedGeometryEffect(id: "speedDial", in: layoutNamespace, properties: .position, anchor: .center)
+                            .contentTransition(.identity)
+                        }
+                        .frame(width: dialContainerWidth, height: dialContainerHeight)
+                        .offset(dialOffset)
+                        .animation(nil, value: dialContainerWidth)
+                        .animation(nil, value: dialContainerHeight)
+
+                        // Speed limit (20%)
+                        ZStack {
+                            SpeedLimitSignView(
+                                speedLimit: locationManager.currentSpeedLimit,
+                                size: signSize
+                            )
+                            .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace, properties: .position, anchor: .center)
+                            .contentTransition(.identity)
+                        }
+                        .frame(width: signContainerWidth, height: signContainerHeight)
+                        .offset(signOffset)
+                        .animation(nil, value: signContainerWidth)
+                        .animation(nil, value: signContainerHeight)
                     }
-                    .frame(width: signContainerWidth, height: signContainerHeight)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if showSpeedometer {
                     // Only dial visible: center it
                     ZStack {
@@ -202,10 +218,11 @@ struct HomeView: View {
                             maxSpeedKmh: maxSpeedKmh,
                             size: min(totalWidth, totalHeight) * 0.92
                         )
-                        .matchedGeometryEffect(id: "speedDial", in: layoutNamespace)
+                        .matchedGeometryEffect(id: "speedDial", in: layoutNamespace, properties: .position, anchor: .center)
                         .contentTransition(.identity)
                     }
                     .frame(width: totalWidth, height: totalHeight)
+                    .animation(nil, value: landscape)
                 } else if showSpeedLimitSign {
                     // Only speed limit visible: center it
                     ZStack {
@@ -213,10 +230,11 @@ struct HomeView: View {
                             speedLimit: locationManager.currentSpeedLimit,
                             size: min(totalWidth, totalHeight) * 0.6
                         )
-                        .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace)
+                        .matchedGeometryEffect(id: "speedLimit", in: layoutNamespace, properties: .position, anchor: .center)
                         .contentTransition(.identity)
                     }
                     .frame(width: totalWidth, height: totalHeight)
+                    .animation(nil, value: landscape)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

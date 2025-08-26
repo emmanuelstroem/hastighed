@@ -66,10 +66,17 @@ struct HomeView: View {
         }
         .animation(.easeInOut(duration: 0.35), value: horizontalSizeClass)
         .animation(.easeInOut(duration: 0.35), value: verticalSizeClass)
+        .alert("Location Permission Required", isPresented: $locationManager.showPermissionAlert) {
+            Button("Open Settings") {
+                locationManager.openAppSettings()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This app needs access to your location to function properly.")
+        }
     }
 
-    // MARK: - Debug Methods
-    private func testMBTilesDatabase() {}
+    // (Removed unused debug method)
 
     // MARK: - Portrait Layout
     @ViewBuilder
@@ -84,7 +91,8 @@ struct HomeView: View {
                         size: min(
                             geometry.size.width * 0.7,
                             geometry.size.height * 0.45
-                        )
+                        ),
+                        speedLimitKmh: Double(locationManager.currentSpeedLimit ?? 0)
                     )
                 }
             }
@@ -126,7 +134,8 @@ struct HomeView: View {
                             size: min(
                                 geometry.size.height * 0.7,
                                 geometry.size.width * 0.4
-                            )
+                            ),
+                            speedLimitKmh: Double(locationManager.currentSpeedLimit ?? 0)
                         )
                     }
                 }
@@ -261,7 +270,8 @@ struct HomeView: View {
                         SpeedDialView(
                             speedKmh: locationManager.currentSpeed * 3.6,
                             maxSpeedKmh: maxSpeedKmh,
-                            size: min(totalWidth, totalHeight) * 0.92
+                            size: min(totalWidth, totalHeight) * 0.92,
+                            speedLimitKmh: Double(locationManager.currentSpeedLimit ?? 0)
                         )
                         .matchedGeometryEffect(
                             id: "speedDial",
@@ -318,10 +328,7 @@ struct HomeView: View {
     }
 }
 
-#Preview {
-    Group {
-        HomeView(locationManager: LocationManager())
-            .previewDevice("iPhone 15 Pro")
-            .previewDisplayName("Portrait")
-    }
+// Preview trimmed to avoid deprecated modifiers warnings
+#Preview("Portrait") {
+    HomeView(locationManager: LocationManager())
 }

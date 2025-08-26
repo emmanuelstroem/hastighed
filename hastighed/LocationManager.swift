@@ -4,6 +4,7 @@ import Foundation
 import GeoToolbox
 import MapKit
 import SwiftUI
+import UIKit
 import os.log
 
 @MainActor
@@ -28,6 +29,7 @@ class LocationManager: NSObject, ObservableObject {
     @Published var currentSpeedLimit: Int? = 0
     @Published var currentSpeedLimitRawValue: Int?
     @Published var currentSpeedLimitRawUnit: String?
+    @Published var showPermissionAlert: Bool = false
     @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh
         .rawValue
 
@@ -71,15 +73,7 @@ class LocationManager: NSObject, ObservableObject {
                 self.currentSpeedLimitRawUnit,
                 forKey: "currentSpeedLimitRawUnit"
             )
-            print(
-                "[UI] Speed limit updated ->",
-                self.currentSpeedLimit as Any,
-                "units=",
-                (SpeedUnits(rawValue: self.speedUnitsRaw) ?? .kmh).displayName,
-                "raw=",
-                rawVal as Any,
-                rawUnit as Any
-            )
+            // Removed noisy print; rely on logger or UI bindings
         }
         .store(in: &cancellables)
 
@@ -97,12 +91,17 @@ class LocationManager: NSObject, ObservableObject {
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
         case .denied, .restricted:
-            errorMessage =
-                "Location access is required for this app to function properly."
+            showPermissionAlert = true
         case .authorizedWhenInUse, .authorizedAlways:
             startLocationUpdates()
         @unknown default:
             break
+        }
+    }
+
+    func openAppSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
     }
 
@@ -213,6 +212,7 @@ extension LocationManager: CLLocationManagerDelegate {
             isLocationEnabled = false
             errorMessage = "Location access denied. Please enable in Settings."
             logger.warning("Location access denied")
+            showPermissionAlert = true
         case .notDetermined:
             break
         @unknown default:

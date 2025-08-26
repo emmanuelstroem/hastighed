@@ -325,7 +325,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         var srsId = 4326
         if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
             defer { sqlite3_finalize(stmt) }
-            table.withCString { cstr in
+            _ = table.withCString { cstr in
                 sqlite3_bind_text(stmt, 1, cstr, -1, SQLITE_TRANSIENT)
             }
             if sqlite3_step(stmt) == SQLITE_ROW {
@@ -387,7 +387,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
         defer { sqlite3_finalize(stmt) }
-        table.withCString { cstr in
+        _ = table.withCString { cstr in
             sqlite3_bind_text(stmt, 1, cstr, -1, SQLITE_TRANSIENT)
         }
         if sqlite3_step(stmt) == SQLITE_ROW, let c = sqlite3_column_text(stmt, 0) {
@@ -419,7 +419,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return false }
         defer { sqlite3_finalize(stmt) }
             // Bind Swift string as C string with transient lifetime
-        name.withCString { cstr in
+        _ = name.withCString { cstr in
             sqlite3_bind_text(stmt, 1, cstr, -1, SQLITE_TRANSIENT)
         }
         let rc = sqlite3_step(stmt)

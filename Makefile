@@ -31,9 +31,11 @@ clean:
 	rm -rf DerivedData/
 
 # Run tests
+SIMULATOR_NAME ?= iPhone 16 Pro
+SIMULATOR_DEST = platform=iOS Simulator,name=$(SIMULATOR_NAME),OS=latest
 test:
-	@echo "Running tests..."
-	xcodebuild -project hastighed.xcodeproj -scheme hastighed -destination 'generic/platform=iOS Simulator' test
+	@echo "Running tests on $(SIMULATOR_DEST)..."
+	xcodebuild -project hastighed.xcodeproj -scheme hastighed -destination '$(SIMULATOR_DEST)' test
 
 # Install dependencies (if using Swift Package Manager)
 install-deps:

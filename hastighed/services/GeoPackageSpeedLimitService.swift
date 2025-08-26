@@ -9,6 +9,8 @@ final class GeoPackageSpeedLimitService: ObservableObject {
     private var db: OpaquePointer?
 
     @Published var currentSpeedLimit: Int?
+    @Published var currentSpeedLimitRawValue: Int?
+    @Published var currentSpeedLimitRawUnit: String?
     @Published var errorMessage: String?
     // Search radius configuration (in meters)
     var minSearchRadiusMeters: Double = 1.0
@@ -83,13 +85,17 @@ final class GeoPackageSpeedLimitService: ObservableObject {
             let bbox = computeSearchBBox(forSRS: srsId, around: location.coordinate, meterRadius: radiusMeters)
             print(String(format: "[GPKG] BBOX minX=%.6f minY=%.6f maxX=%.6f maxY=%.6f (srs=%d)", bbox.minX, bbox.minY, bbox.maxX, bbox.maxY, srsId))
             if let candidate = queryNearestFeature(in: table, pkCol: pkCol, geomCol: geomCol, srsId: srsId, bbox: bbox, near: location.coordinate, searchRadiusMeters: radiusMeters) {
-                if let maxspeed = extractSpeedLimit(from: candidate.tags) {
-                    logger.info("GPKG match row=\(candidate.rowid, privacy: .public) -> speed=\(maxspeed, privacy: .public)")
-                    print("[GPKG] Result: row=\(candidate.rowid) speed=\(maxspeed) km/h at radius=\(Int(radiusMeters)) m")
-                    return maxspeed
+                if let parsed = parseRawAndKmh(from: candidate.tags) {
+                    logger.info("GPKG match row=\(candidate.rowid, privacy: .public) -> kmh=\(parsed.kmh ?? -1, privacy: .public) raw=\(parsed.rawValue?.description ?? "nil", privacy: .public) unit=\(parsed.rawUnit ?? "nil", privacy: .public)")
+                    self.currentSpeedLimitRawValue = parsed.rawValue
+                    self.currentSpeedLimitRawUnit = parsed.rawUnit
+                    print("[GPKG] Result: row=\(candidate.rowid) kmh=\(parsed.kmh ?? -1) raw=\(parsed.rawValue?.description ?? "nil") unit=\(parsed.rawUnit ?? "nil") at radius=\(Int(radiusMeters)) m")
+                    return parsed.kmh
                 }
                 if let highway = candidate.tags["highway"], let fallback = defaultSpeed(for: highway) {
                     print("[GPKG] Fallback speed=\(fallback) km/h from highway=\(highway) at radius=\(Int(radiusMeters)) m")
+                    self.currentSpeedLimitRawValue = nil
+                    self.currentSpeedLimitRawUnit = nil
                     return fallback
                 }
             }
@@ -97,6 +103,8 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         }
         logger.info("GPKG returned no speed limit for this point after expanding to \(maxMeters, privacy: .public) m")
         print("[GPKG] No speed limit found up to \(Int(maxMeters)) m")
+        self.currentSpeedLimitRawValue = nil
+        self.currentSpeedLimitRawUnit = nil
         return nil
     }
 
@@ -106,6 +114,8 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         DispatchQueue.main.async {
             self.currentSpeedLimit = result
             if let value = result { UserDefaults.standard.set(value, forKey: "currentSpeedLimit") }
+            UserDefaults.standard.set(self.currentSpeedLimitRawValue, forKey: "currentSpeedLimitRawValue")
+            UserDefaults.standard.set(self.currentSpeedLimitRawUnit, forKey: "currentSpeedLimitRawUnit")
         }
     }
 
@@ -114,6 +124,11 @@ final class GeoPackageSpeedLimitService: ObservableObject {
     func updateCurrentLocation(_ location: CLLocation) { /* not required for gpkg lookup */ }
     func querySpeedLimitImmediately(for location: CLLocation) { querySpeedLimitAndPublish(for: location) }
     func getStoredSpeedLimit() -> Int? { UserDefaults.standard.object(forKey: "currentSpeedLimit") as? Int }
+    func getStoredSpeedLimitRaw() -> (Int?, String?) {
+        let val = UserDefaults.standard.object(forKey: "currentSpeedLimitRawValue") as? Int
+        let unit = UserDefaults.standard.object(forKey: "currentSpeedLimitRawUnit") as? String
+        return (val, unit)
+    }
 
     private func detectRoadsTable(db: OpaquePointer) -> String? {
         // Prefer table names containing road keywords and having useful columns
@@ -410,14 +425,39 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         return rc == SQLITE_ROW
     }
 
-    private func extractSpeedLimit(from tags: [String: String]) -> Int? {
+    private func parseRawAndKmh(from tags: [String: String]) -> (rawValue: Int?, rawUnit: String?, kmh: Int?)? {
+        // Try explicit columns first
+        if let raw = tags["maxspeed_raw"], !raw.trimmingCharacters(in: .whitespaces).isEmpty {
+            let tokens = raw.split(separator: " ")
+            let rawVal = tokens.first.flatMap { Int($0) }
+            let rawUnit = tokens.count > 1 ? String(tokens[1]) : nil
+            var kmh: Int?
+            if let ru = rawUnit?.lowercased() {
+                if ru == "mph" { if let rv = rawVal { kmh = Int((Double(rv) * 1.60934).rounded()) } }
+                else if ru == "km/h" || ru == "kmh" { kmh = rawVal }
+            }
+            if kmh == nil, let s = tags["maxspeed_kmh"], let n = Double(s.filter({ $0.isNumber || $0 == "." })) { kmh = Int(n.rounded()) }
+            return (rawVal, rawUnit, kmh)
+        }
+        // Else infer from common tags
         let keys = ["maxspeed", "max_speed", "speed_limit"]
         for k in keys {
-            if let v = tags[k] {
-                // strip units like "50 km/h"
-                if let m = v.split(whereSeparator: { !$0.isNumber }).first, let n = Int(m) { return n }
-                if let n = Int(v) { return n }
+            if let v = tags[k]?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty {
+                let tokens = v.split(separator: " ")
+                let rawVal = tokens.first.flatMap { Int($0.filter({ $0.isNumber })) }
+                let rawUnit = tokens.count > 1 ? String(tokens[1]) : nil
+                // Compute kmh fallback if needed
+                let lower = v.lowercased().replacingOccurrences(of: " ", with: "")
+                var kmh: Int?
+                if lower.hasSuffix("mph"), let num = Double(lower.dropLast(3).filter({ $0.isNumber || $0 == "." })) { kmh = Int((num * 1.60934).rounded()) }
+                else if lower.hasSuffix("km/h") || lower.hasSuffix("kmh"), let num = Double(lower.replacingOccurrences(of: "km/h", with: "").replacingOccurrences(of: "kmh", with: "").filter({ $0.isNumber || $0 == "." })) { kmh = Int(num.rounded()) }
+                else if let num = Double(lower.filter({ $0.isNumber || $0 == "." })) { kmh = Int(num.rounded()) }
+                return (rawVal, rawUnit, kmh)
             }
+        }
+        // Finally, try explicit kmh
+        if let s = tags["maxspeed_kmh"], let n = Double(s.filter({ $0.isNumber || $0 == "." })) {
+            return (nil, nil, Int(n.rounded()))
         }
         return nil
     }

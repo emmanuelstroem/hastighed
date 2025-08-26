@@ -4,35 +4,33 @@ struct SpeedDialView: View {
     let speedKmh: Double
     let maxSpeedKmh: Double
     var size: CGFloat = 200
-    var batteryLevel: Double = 0.0 // Default battery level (0.0 to 1.0)
+    var batteryLevel: Double = 0.0 // Ignored for now
     
     // Visual tuning
     private var speedArcThickness: CGFloat { size * 0.05 }
-    private var energyArcThickness: CGFloat { size * 0.018 } // thinner energy bar like reference
-    private var arcSeparationInset: CGFloat { size * 0.005 } // more separation so bars never appear to touch
-    private var energyPaddingDegrees: Double { 8 } // angular padding so ends never meet speed ends
-    // Draw energy clockwise centered on bottom gap (225°..315°)
-    private var energyStartDegrees: Double { 315 - energyPaddingDegrees }
-    private var energySweepDegrees: Double { max(0, 90 - (2 * energyPaddingDegrees)) } // fit within remaining arc
+    private var energyArcThickness: CGFloat { 0 }
+    private var arcSeparationInset: CGFloat { 0 }
+    private var energyPaddingDegrees: Double { 0 }
+    private var energyStartDegrees: Double { 315 }
+    private var energySweepDegrees: Double { 0 }
     
-    // Convert km/h to mph for display
-    private var speedMph: Double {
-        speedKmh * 0.621371
+    @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
+    private var units: SpeedUnits { SpeedUnits(rawValue: speedUnitsRaw) ?? .kmh }
+    
+    private var displaySpeed: Double {
+        units.convertFromKmh(speedKmh)
     }
     
-    private var maxSpeedMph: Double {
-        maxSpeedKmh * 0.621371
+    private var displayMaxSpeed: Double {
+        units.convertFromKmh(maxSpeedKmh)
     }
     
     private var progress: Double {
-        guard maxSpeedMph > 0 else { return 0 }
-        return min(max(speedMph / maxSpeedMph, 0), 1)
+        guard displayMaxSpeed > 0 else { return 0 }
+        return min(max(displaySpeed / displayMaxSpeed, 0), 1)
     }
     
-    // Estimated range calculation
-    private var estimatedRangeMiles: Int {
-        max(200 - Int(speedMph * 2), 50) // Simple calculation for demo
-    }
+    // No range/battery calculations needed currently
     
     var body: some View {
         ZStack {
@@ -78,18 +76,6 @@ struct SpeedDialView: View {
                         .frame(width: size, height: size)
                         .shadow(color: .cyan.opacity(0.30), radius: 6)
                         .animation(.easeInOut(duration: 0.45), value: progress)
-                    
-                    // Energy progress inside bottom gap, smaller sweep and thinner
-                    ArcSegment(startAngleDegrees: energyStartDegrees, sweepDegrees: energySweepDegrees, progress: max(min(batteryLevel, 1), 0), inset: arcSeparationInset, clockwise: true)
-                        .stroke(
-                            (batteryLevel < 0.25)
-                            ? LinearGradient(gradient: Gradient(colors: [Color.orange, Color.red]), startPoint: .leading, endPoint: .trailing)
-                            : LinearGradient(gradient: Gradient(colors: [Color.cyan, Color.blue.opacity(0.9)]), startPoint: .leading, endPoint: .trailing),
-                            style: StrokeStyle(lineWidth: energyArcThickness, lineCap: .round)
-                        )
-                        .frame(width: size, height: size)
-                        .shadow(color: (batteryLevel < 0.25 ? Color.orange : Color.cyan).opacity(0.35), radius: 4)
-                        .animation(.easeInOut(duration: 0.45), value: batteryLevel)
                 }
             }
             .rotationEffect(.degrees(180))
@@ -100,13 +86,13 @@ struct SpeedDialView: View {
                 
                 // Speed display
                 VStack(spacing: size * 0.02) {
-                    Text("\(Int(speedMph.rounded()))")
+                    Text("\(Int(displaySpeed.rounded()))")
                         .font(.system(size: size * 0.35, weight: .medium, design: .rounded))
                         .foregroundColor(.white)
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                     
-                    Text("km/h")
+                    Text(units.displayName)
                         .font(.system(size: size * 0.08, weight: .regular, design: .rounded))
                         .foregroundColor(.white.opacity(0.7))
                 }
@@ -115,7 +101,7 @@ struct SpeedDialView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Current speed \(Int(speedMph.rounded())) miles per hour. Estimated range \(estimatedRangeMiles) miles. Battery level \(Int((batteryLevel * 100).rounded())) percent")
+        .accessibilityLabel("Current speed \(Int(displaySpeed.rounded())) \(units.displayName)")
         .accessibilityValue("Speed is \(Int((progress * 100).rounded())) percent of maximum")
     }
 }

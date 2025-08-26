@@ -23,6 +23,9 @@ class LocationManager: NSObject, ObservableObject {
     @Published var errorMessage: String?
     @Published var coordinateHistory: [CLLocationCoordinate2D] = []
     @Published var currentSpeedLimit: Int? = 0
+    @Published var currentSpeedLimitRawValue: Int?
+    @Published var currentSpeedLimitRawUnit: String?
+    @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
     
     override init() {
         super.init()
@@ -39,18 +42,43 @@ class LocationManager: NSObject, ObservableObject {
     
     private func setupGeoPackageService() {
         // Observe service for speed limit updates
-        gpkgService.$currentSpeedLimit
+        Publishers.CombineLatest3(gpkgService.$currentSpeedLimit, gpkgService.$currentSpeedLimitRawValue, gpkgService.$currentSpeedLimitRawUnit)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] speedLimit in
-                self?.currentSpeedLimit = speedLimit
-                print("[UI] Speed limit updated ->", speedLimit as Any)
+            .sink { [weak self] speedLimitKmh, rawVal, rawUnit in
+                guard let self else { return }
+                let units = SpeedUnits(rawValue: self.speedUnitsRaw) ?? .kmh
+                self.currentSpeedLimitRawValue = rawVal
+                self.currentSpeedLimitRawUnit = rawUnit
+                if let kmh = speedLimitKmh {
+                    switch units {
+                    case .kmh:
+                        self.currentSpeedLimit = kmh
+                    case .mph:
+                        self.currentSpeedLimit = Int((Double(kmh) * 0.621371).rounded())
+                    }
+                } else {
+                    self.currentSpeedLimit = nil
+                }
+                // Persist raw tokens for UI consumption
+                UserDefaults.standard.set(self.currentSpeedLimitRawValue, forKey: "currentSpeedLimitRawValue")
+                UserDefaults.standard.set(self.currentSpeedLimitRawUnit, forKey: "currentSpeedLimitRawUnit")
+                print("[UI] Speed limit updated ->", self.currentSpeedLimit as Any, "units=", units.displayName, "raw=", rawVal as Any, rawUnit as Any)
             }
             .store(in: &cancellables)
         
         // Load any previously stored speed limit
         if let storedSpeedLimit = gpkgService.getStoredSpeedLimit() {
-            currentSpeedLimit = storedSpeedLimit
+            let units = SpeedUnits(rawValue: speedUnitsRaw) ?? .kmh
+            switch units {
+            case .kmh:
+                currentSpeedLimit = storedSpeedLimit
+            case .mph:
+                currentSpeedLimit = Int((Double(storedSpeedLimit) * 0.621371).rounded())
+            }
         }
+        let storedRaw = gpkgService.getStoredSpeedLimitRaw()
+        currentSpeedLimitRawValue = storedRaw.0
+        currentSpeedLimitRawUnit = storedRaw.1
     }
     
     func requestLocationPermission() {

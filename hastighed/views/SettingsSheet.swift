@@ -5,6 +5,14 @@ struct SettingsSheet: View {
     @Binding var showSpeedometer: Bool
     @Binding var showSpeedLimitSign: Bool
     @AppStorage("maxSpeedKmh") private var maxSpeedKmh: Double = 201
+    @AppStorage("keepScreenAwake") private var keepScreenAwake: Bool = true
+    @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
+    private var speedUnits: Binding<SpeedUnits> {
+        Binding<SpeedUnits>(
+            get: { SpeedUnits(rawValue: speedUnitsRaw) ?? .kmh },
+            set: { speedUnitsRaw = $0.rawValue }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -12,12 +20,20 @@ struct SettingsSheet: View {
                 Section(header: Text("Display")) {
                     Toggle("Speedometer", isOn: $showSpeedometer)
                     Toggle("Speed limit sign", isOn: $showSpeedLimitSign)
+                    Picker("Units", selection: speedUnits) {
+                        ForEach(SpeedUnits.allCases) { unit in
+                            Text(unit.displayName).tag(unit)
+                        }
+                    }
                     HStack {
                         Stepper("Max speed: \(Int(maxSpeedKmh)) km/h", value: $maxSpeedKmh, in: 60...360, step: 1)
                     }
                 }
                 Section(header: Text("Debug")) {
                     Toggle("Show debug overlay", isOn: $showDebugOverlay)
+                }
+                Section(header: Text("Power")) {
+                    Toggle("Keep screen awake", isOn: $keepScreenAwake)
                 }
             }
             .navigationTitle("Settings")

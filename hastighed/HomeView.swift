@@ -101,13 +101,34 @@ struct HomeView: View {
             // Bottom: Speed Limit sign (takes the other half)
             ZStack {
                 if showSpeedLimitSign {
-                    SpeedLimitSignView(
-                        speedLimit: locationManager.currentSpeedLimit,
-                        size: min(
-                            geometry.size.width * 0.5,
-                            geometry.size.height * 0.35
-                        )
+                    let baseSize = min(
+                        geometry.size.width * 0.5,
+                        geometry.size.height * 0.35
                     )
+                    if let upcoming = locationManager.upcomingSpeedLimit {
+                        let spacing = baseSize * 0.12
+                        let available = geometry.size.width
+                        let pairSize = min(baseSize, (available - spacing) / 2)
+                        HStack(spacing: spacing) {
+                            SpeedLimitSignView(
+                                speedLimit: locationManager.currentSpeedLimit,
+                                size: pairSize
+                            )
+                            .accessibilityIdentifier("currentSpeedLimitSign")
+                            SpeedLimitSignView(
+                                speedLimit: upcoming,
+                                size: pairSize,
+                                dimmed: true
+                            )
+                            .accessibilityIdentifier("upcomingSpeedLimitSign")
+                        }
+                    } else {
+                        SpeedLimitSignView(
+                            speedLimit: locationManager.currentSpeedLimit,
+                            size: baseSize
+                        )
+                        .accessibilityIdentifier("currentSpeedLimitSign")
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -143,13 +164,35 @@ struct HomeView: View {
 
                 ZStack {
                     if showSpeedLimitSign {
-                        SpeedLimitSignView(
-                            speedLimit: locationManager.currentSpeedLimit,
-                            size: min(
-                                geometry.size.height * 0.5,
-                                geometry.size.width * 0.25
-                            )
+                        let baseSize = min(
+                            geometry.size.height * 0.5,
+                            geometry.size.width * 0.25
                         )
+                        if let upcoming = locationManager.upcomingSpeedLimit {
+                            let spacing = baseSize * 0.12
+                            // Approximate available width for sign column
+                            let available = geometry.size.width * 0.5
+                            let pairSize = min(baseSize, (available - spacing) / 2)
+                            HStack(spacing: spacing) {
+                                SpeedLimitSignView(
+                                    speedLimit: locationManager.currentSpeedLimit,
+                                    size: pairSize
+                                )
+                                .accessibilityIdentifier("currentSpeedLimitSign")
+                                SpeedLimitSignView(
+                                    speedLimit: upcoming,
+                                    size: pairSize,
+                                    dimmed: true
+                                )
+                                .accessibilityIdentifier("upcomingSpeedLimitSign")
+                            }
+                        } else {
+                            SpeedLimitSignView(
+                                speedLimit: locationManager.currentSpeedLimit,
+                                size: baseSize
+                            )
+                            .accessibilityIdentifier("currentSpeedLimitSign")
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -223,7 +266,8 @@ struct HomeView: View {
                             SpeedometerView(
                                 speedKmh: Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: UnitSpeed.kilometersPerHour).value,
                                 maxSpeedKmh: maxSpeedKmh,
-                                size: dialSize
+                                size: dialSize,
+                                speedLimitKmh: Double(locationManager.currentSpeedLimit ?? 0)
                             )
                             .matchedGeometryEffect(
                                 id: "speedDial",
@@ -243,17 +287,29 @@ struct HomeView: View {
 
                         // Speed limit (20%)
                         ZStack {
-                            SpeedLimitSignView(
-                                speedLimit: locationManager.currentSpeedLimit,
-                                size: signSize
-                            )
-                            .matchedGeometryEffect(
-                                id: "speedLimit",
-                                in: layoutNamespace,
-                                properties: .position,
-                                anchor: .center
-                            )
-                            .contentTransition(.identity)
+                            if let upcoming = locationManager.upcomingSpeedLimit {
+                                let spacing = signSize * 0.12
+                                let pairSize = min(signSize, (signContainerWidth - spacing) / 2)
+                                HStack(spacing: spacing) {
+                                    SpeedLimitSignView(
+                                        speedLimit: locationManager.currentSpeedLimit,
+                                        size: pairSize
+                                    )
+                                    .accessibilityIdentifier("currentSpeedLimitSign")
+                                    SpeedLimitSignView(
+                                        speedLimit: upcoming,
+                                        size: pairSize,
+                                        dimmed: true
+                                    )
+                                    .accessibilityIdentifier("upcomingSpeedLimitSign")
+                                }
+                            } else {
+                                SpeedLimitSignView(
+                                    speedLimit: locationManager.currentSpeedLimit,
+                                    size: signSize
+                                )
+                                .accessibilityIdentifier("currentSpeedLimitSign")
+                            }
                         }
                         .frame(
                             width: signContainerWidth,
@@ -286,10 +342,30 @@ struct HomeView: View {
                 } else if showSpeedLimitSign {
                     // Only speed limit visible: center it
                     ZStack {
-                        SpeedLimitSignView(
-                            speedLimit: locationManager.currentSpeedLimit,
-                            size: min(totalWidth, totalHeight) * 0.6
-                        )
+                        let baseSize = min(totalWidth, totalHeight) * 0.6
+                        Group {
+                            if let upcoming = locationManager.upcomingSpeedLimit {
+                                HStack(spacing: baseSize * 0.12) {
+                                    SpeedLimitSignView(
+                                        speedLimit: locationManager.currentSpeedLimit,
+                                        size: baseSize
+                                    )
+                                    .accessibilityIdentifier("currentSpeedLimitSign")
+                                    SpeedLimitSignView(
+                                        speedLimit: upcoming,
+                                        size: baseSize,
+                                        dimmed: true
+                                    )
+                                    .accessibilityIdentifier("upcomingSpeedLimitSign")
+                                }
+                            } else {
+                                SpeedLimitSignView(
+                                    speedLimit: locationManager.currentSpeedLimit,
+                                    size: baseSize
+                                )
+                                .accessibilityIdentifier("currentSpeedLimitSign")
+                            }
+                        }
                         .matchedGeometryEffect(
                             id: "speedLimit",
                             in: layoutNamespace,
@@ -326,6 +402,37 @@ struct HomeView: View {
             }
         }
     }
+}
+
+// MARK: - Preview helpers
+private final class PreviewLocationManager: LocationManager {
+    override init() {
+        super.init()
+        // Seed preview values
+        self.currentSpeed = 15.0 // m/s ~ 54 km/h
+        self.currentStreetName = "Preview Street"
+    }
+    override func startLocationUpdates() { /* no-op for previews */ }
+    override func stopLocationUpdates() { /* no-op for previews */ }
+    override func refreshSpeedLimit() { /* no-op for previews */ }
+}
+
+#Preview("Signs - current only") {
+    let lm = PreviewLocationManager()
+    lm.currentSpeedLimit = 50
+    lm.upcomingSpeedLimit = nil
+    UserDefaults.standard.set(false, forKey: "showSpeedometer")
+    UserDefaults.standard.set(true, forKey: "showSpeedLimitSign")
+    return HomeView(locationManager: lm)
+}
+
+#Preview("Signs - current + upcoming") {
+    let lm = PreviewLocationManager()
+    lm.currentSpeedLimit = 50
+    lm.upcomingSpeedLimit = 80
+    UserDefaults.standard.set(false, forKey: "showSpeedometer")
+    UserDefaults.standard.set(true, forKey: "showSpeedLimitSign")
+    return HomeView(locationManager: lm)
 }
 
 // Preview trimmed to avoid deprecated modifiers warnings

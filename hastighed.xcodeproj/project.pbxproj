@@ -33,6 +33,16 @@
 		149D71812E5A1879000584BE /* hastighedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hastighedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1455ECA72E5F97110008C703 /* Exceptions for "hastighed" folder in "hastighed" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 149D71672E5A1878000584BE /* hastighed */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 		147CA4FE2E5CDD3800477ED8 /* Exceptions for "hastighed" folder in "Compile Sources" phase from "hastighed" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
@@ -47,6 +57,7 @@
 		149D716A2E5A1878000584BE /* hastighed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				1455ECA72E5F97110008C703 /* Exceptions for "hastighed" folder in "hastighed" target */,
 				147CA4FE2E5CDD3800477ED8 /* Exceptions for "hastighed" folder in "Compile Sources" phase from "hastighed" target */,
 			);
 			path = hastighed;
@@ -422,6 +433,7 @@
 				DEVELOPMENT_TEAM = A9Q5VPE9WX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = hastighed/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "This app needs access to your location to provide accurate speed limit information and street details for your current position.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app needs access to your location to provide accurate speed limit information and street details for your current position.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -456,6 +468,7 @@
 				DEVELOPMENT_TEAM = A9Q5VPE9WX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = hastighed/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "This app needs access to your location to provide accurate speed limit information and street details for your current position.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app needs access to your location to provide accurate speed limit information and street details for your current position.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

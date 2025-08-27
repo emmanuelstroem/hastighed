@@ -30,7 +30,16 @@ class LocationManager: NSObject, ObservableObject {
     @Published var currentSpeedLimitRawValue: Int?
     @Published var currentSpeedLimitRawUnit: String?
     @Published var showPermissionAlert: Bool = false
+    @Published var upcomingSpeedLimit: Int? = nil
     @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh.rawValue
+    @AppStorage("upcomingDistanceMeters") private var upcomingDistanceMeters: Double = 250
+
+    // Reverse geocoding throttling
+    private var lastReverseGeocodeAt: Date = .distantPast
+    private var lastReverseGeocodeCoord: CLLocationCoordinate2D?
+    private var reverseGeocodeInFlight: Bool = false
+    private let reverseGeocodeMinInterval: TimeInterval = 5 // seconds
+    private let reverseGeocodeMinDistance: CLLocationDistance = 30 // meters
 
     // No smoothing: use Core Location's reported speed directly
 
@@ -148,6 +157,22 @@ class LocationManager: NSObject, ObservableObject {
     }
 
     private func updateStreetName(for location: CLLocation) {
+        // Skip during UI harness runs
+        if ProcessInfo.processInfo.environment["UI_TEST_SPEEDDIAL_HARNESS"] == "1" { return }
+
+        // Throttle by time and distance and ensure only one request in flight
+        let now = Date()
+        let intervalOk = now.timeIntervalSince(lastReverseGeocodeAt) >= reverseGeocodeMinInterval
+        let distanceOk: Bool = {
+            if let last = lastReverseGeocodeCoord {
+                let lastLoc = CLLocation(latitude: last.latitude, longitude: last.longitude)
+                return location.distance(from: lastLoc) >= reverseGeocodeMinDistance
+            }
+            return true
+        }()
+        guard intervalOk && distanceOk && !reverseGeocodeInFlight else { return }
+        reverseGeocodeInFlight = true
+
         // Use modern MapKit reverse geocoding for iOS 26
         Task {
             do {
@@ -189,16 +214,38 @@ class LocationManager: NSObject, ObservableObject {
                         }
                     }
                 }
-            } catch {
                 await MainActor.run {
-                    self.errorMessage =
-                        "Failed to get street name: \(error.localizedDescription)"
-                    self.logger.error(
-                        "Geocoding failed: \(error.localizedDescription)"
-                    )
+                    self.lastReverseGeocodeAt = now
+                    self.lastReverseGeocodeCoord = location.coordinate
+                }
+            } catch {
+                // Suppress noisy user-facing error; log at debug and keep throttling state
+                self.logger.debug("Reverse geocoding failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.lastReverseGeocodeAt = now
+                    self.lastReverseGeocodeCoord = location.coordinate
                 }
             }
+            self.reverseGeocodeInFlight = false
         }
+    }
+
+    private func coordinate(aheadFrom origin: CLLocationCoordinate2D, distanceMeters: Double, bearingDegrees: CLLocationDirection) -> CLLocationCoordinate2D {
+        let radiusEarth = 6_371_000.0
+        let δ = distanceMeters / radiusEarth
+        let θ = bearingDegrees * .pi / 180
+        let φ1 = origin.latitude * .pi / 180
+        let λ1 = origin.longitude * .pi / 180
+        let sinφ1 = sin(φ1)
+        let cosφ1 = cos(φ1)
+        let sinδ = sin(δ)
+        let cosδ = cos(δ)
+        let sinφ2 = sinφ1 * cosδ + cosφ1 * sinδ * cos(θ)
+        let φ2 = asin(sinφ2)
+        let y = sin(θ) * sinδ * cosφ1
+        let x = cosδ - sinφ1 * sinφ2
+        let λ2 = λ1 + atan2(y, x)
+        return CLLocationCoordinate2D(latitude: φ2 * 180 / .pi, longitude: λ2 * 180 / .pi)
     }
 }
 
@@ -242,6 +289,33 @@ extension LocationManager: CLLocationManagerDelegate {
 
         // Query speed limit on each update to keep UI fresh
         gpkgService.querySpeedLimitImmediately(for: location)
+
+        // Compute upcoming speed limit at configured distance ahead, if course is valid
+        if location.course >= 0 {
+            let aheadCoord = coordinate(aheadFrom: location.coordinate, distanceMeters: upcomingDistanceMeters, bearingDegrees: location.course)
+            let aheadLocation = CLLocation(latitude: aheadCoord.latitude, longitude: aheadCoord.longitude)
+            // Determine current road context at present location
+            let currentCtx = gpkgService.queryRoadContext(for: location)
+            // Determine road context ahead in travel direction
+            let aheadCtx = gpkgService.queryRoadContext(for: aheadLocation)
+            if let currentCtx, let aheadCtx,
+               let current = self.currentSpeedLimit,
+               let next = aheadCtx.speedKmh,
+               next != current {
+                // Require either same road id or same name (robust when ids differ)
+                let sameRoad = (currentCtx.roadId == aheadCtx.roadId)
+                    || ((currentCtx.name?.lowercased() ?? "") == (aheadCtx.name?.lowercased() ?? ""))
+                if sameRoad {
+                    self.upcomingSpeedLimit = next
+                } else {
+                    self.upcomingSpeedLimit = nil
+                }
+            } else {
+                self.upcomingSpeedLimit = nil
+            }
+        } else {
+            self.upcomingSpeedLimit = nil
+        }
 
         // Update street name when location changes (optional for gpkg)
         updateStreetName(for: location)

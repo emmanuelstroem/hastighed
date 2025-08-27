@@ -16,6 +16,12 @@ final class GeoPackageSpeedLimitService: ObservableObject {
     var minSearchRadiusMeters: Double = 1.0
     var maxSearchRadiusMeters: Double = 20.0
     
+    struct RoadContext {
+        let roadId: Int64
+        let name: String?
+        let speedKmh: Int?
+    }
+    
     init(geoPackageFileName: String = "denmark.gpkg") {
         openGeoPackage(named: geoPackageFileName)
     }
@@ -108,6 +114,29 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         return nil
     }
     
+    // Public API: return nearest road id, name, and speed (km/h) around a point
+    func queryRoadContext(for location: CLLocation) -> RoadContext? {
+        guard let db else { return nil }
+        guard let table = detectRoadsTable(db: db) else { return nil }
+        let (geomCol, srsId) = getGeometryInfo(for: table)
+        let pkCol = getPrimaryKeyColumn(for: table) ?? "ROWID"
+        var radiusMeters = max(0.5, minSearchRadiusMeters)
+        let maxMeters = max(maxSearchRadiusMeters, radiusMeters)
+        while radiusMeters <= maxMeters + 1e-6 {
+            let bbox = computeSearchBBox(forSRS: srsId, around: location.coordinate, meterRadius: radiusMeters)
+            if let feat = queryNearestFeature(in: table, pkCol: pkCol, geomCol: geomCol, srsId: srsId, bbox: bbox, near: location.coordinate, searchRadiusMeters: radiusMeters) {
+                let speedKmh: Int? = parseRawAndKmh(from: feat.tags)?.kmh ?? {
+                    if let highway = feat.tags["highway"], let fallback = defaultSpeed(for: highway) { return fallback }
+                    return nil
+                }()
+                let name = feat.tags["name"]
+                return RoadContext(roadId: feat.rowid, name: name, speedKmh: speedKmh)
+            }
+            radiusMeters += 1.0
+        }
+        return nil
+    }
+    
         // Public API: compute, publish, and persist
     func querySpeedLimitAndPublish(for location: CLLocation) {
         let result = querySpeedLimit(for: location)
@@ -153,6 +182,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
             if cols.contains("highway") { s += 5 }
             if cols.contains("maxspeed") || cols.contains("max_speed") || cols.contains("speed_limit") { s += 4 }
             if ["tags","other_tags","properties","attrs","json"].contains(where: { cols.contains($0) }) { s += 2 }
+            if cols.contains("name") { s += 1 }
             return s
         }
         let best = candidates.max(by: { score($0) < score($1) })
@@ -175,6 +205,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
             // Pick optional direct attributes if present
         let maxspeedCol: String? = ["maxspeed", "max_speed", "speed_limit"].first(where: { columnSet.contains($0) })
         let highwayCol: String? = columnSet.contains("highway") ? "highway" : nil
+        let nameCol: String? = columnSet.contains("name") ? "name" : nil
         
         
             // Try RTree index per GPKG spec: rtree_{table}_{geomCol}
@@ -188,6 +219,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         if let tcol = tagsCol { selectCols.append("t.\(tcol)") }
         if let mcol = maxspeedCol { selectCols.append("t.\(mcol)") }
         if let hcol = highwayCol { selectCols.append("t.\(hcol)") }
+        if let ncol = nameCol { selectCols.append("t.\(ncol)") }
         let selectList = selectCols.joined(separator: ", ")
         
         let sql: String
@@ -264,6 +296,12 @@ final class GeoPackageSpeedLimitService: ObservableObject {
             if highwayCol != nil {
                 if let cstr = sqlite3_column_text(stmt, Int32(nextColIndex)) {
                     tags["highway"] = String(cString: cstr)
+                }
+                nextColIndex += 1
+            }
+            if nameCol != nil {
+                if let cstr = sqlite3_column_text(stmt, Int32(nextColIndex)) {
+                    tags["name"] = String(cString: cstr)
                 }
                 nextColIndex += 1
             }

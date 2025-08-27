@@ -3,6 +3,7 @@ import SwiftUI
 struct SpeedLimitSignView: View {
     let speedLimit: Int?
     var size: CGFloat = 84
+    var dimmed: Bool = false
     @AppStorage("speedUnits") private var speedUnitsRaw: String = SpeedUnits.kmh
         .rawValue
     private var units: SpeedUnits {
@@ -27,9 +28,9 @@ struct SpeedLimitSignView: View {
             if let v = convertedLimit {
                 ZStack {
                     Circle()
-                        .fill(Color.white)
+                        .fill(dimmed ? Color.gray.opacity(0.35) : Color.white)
                     Circle()
-                        .stroke(Color.red, lineWidth: max(8, size * 0.05))
+                        .stroke(dimmed ? Color.gray : Color.red, lineWidth: max(8, size * 0.05))
                     Text("\(v)")
                         .font(
                             .system(
@@ -38,7 +39,7 @@ struct SpeedLimitSignView: View {
                                 design: .default
                             )
                         )
-                        .foregroundColor(.black)
+                        .foregroundColor(dimmed ? Color.black.opacity(0.6) : .black)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
                         .padding(.horizontal, 6)
@@ -54,7 +55,7 @@ struct SpeedLimitSignView: View {
                                     design: .rounded
                                 )
                             )
-                            .foregroundColor(.black.opacity(0.8))
+                            .foregroundColor(dimmed ? Color.black.opacity(0.55) : .black.opacity(0.8))
                             .padding(.bottom, size * 0.08)
                     }
                 }
@@ -75,6 +76,7 @@ struct SpeedLimitSignView: View {
         SpeedLimitSignView(speedLimit: 60)
         SpeedLimitSignView(speedLimit: 110, size: 120)
         SpeedLimitSignView(speedLimit: 130, size: 120)
+        SpeedLimitSignView(speedLimit: 80, size: 120, dimmed: true)
     }
     .padding()
     .background(Color.black)

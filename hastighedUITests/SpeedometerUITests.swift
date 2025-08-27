@@ -43,6 +43,19 @@ final class SpeedometerUITests: XCTestCase {
         app3.launch()
         XCTAssertTrue(app3.staticTexts["speedValue"].waitForExistence(timeout: 3))
     }
+
+    func testHomeShowsCurrentAndUpcomingSigns() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UI_TEST_HOME_SIGNS_HARNESS"] = "1"
+        app.launchEnvironment["CURRENT_LIMIT"] = "50"
+        app.launchEnvironment["UPCOMING_LIMIT"] = "80"
+        app.launch()
+
+        let current = app.otherElements["currentSpeedLimitSign"]
+        let upcoming = app.otherElements["upcomingSpeedLimitSign"]
+        XCTAssertTrue(current.waitForExistence(timeout: 5), "Current speed limit sign should be visible")
+        XCTAssertTrue(upcoming.waitForExistence(timeout: 5), "Upcoming speed limit sign should be visible")
+    }
 }
 
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SpeedDialView: View {
+struct SpeedometerView: View {
     let speedKmh: Double
     let maxSpeedKmh: Double
     var size: CGFloat = 200
@@ -70,7 +70,7 @@ struct SpeedDialView: View {
                 Group {
                     // Speed progress on its own ring (270°)
                     if let _ = displayLimit, let _ = displayLimitThreshold {
-                        let severity = SpeedDialView.determineSeverity(speedKmh: speedKmh, limitKmh: speedLimitKmh, units: units)
+                        let severity = SpeedometerView.determineSeverity(speedKmh: speedKmh, limitKmh: speedLimitKmh, units: units)
                         switch severity {
                         case .within:
                             ArcSegment(startAngleDegrees: 315, sweepDegrees: 270, progress: progress, inset: 0, clockwise: false)
@@ -187,7 +187,7 @@ private struct ArcSegment: Shape {
 }
 
 // MARK: - Testing helpers
-extension SpeedDialView {
+extension SpeedometerView {
     enum SpeedSeverity { case within, buffer, over }
     static func determineSeverity(speedKmh: Double, limitKmh: Double?, units: SpeedUnits) -> SpeedSeverity {
         guard let limitKmh, limitKmh > 0 else { return .within }
@@ -215,21 +215,25 @@ extension SpeedDialView {
         
         VStack(spacing: 30) {
             // High speed, good battery
-            SpeedDialView(
-                speedKmh: 92,
+            SpeedometerView(
+                speedKmh: 50,
                 maxSpeedKmh: 201,
-                size: 280, 
-                batteryLevel: 0.8
-            ) // 60 mph in km/h, 80% battery
+                size: 280,
+                batteryLevel: 0.8,
+                speedLimitKmh: 50
+            )
             
             // Medium speed, low battery
-            SpeedDialView(
-                speedKmh: 48.28, 
-                maxSpeedKmh: 201, 
-                size: 200, 
-                batteryLevel: 0.2
-            ) // 30 mph in km/h, 20% battery
+            SpeedometerView(
+                speedKmh: 31,
+                maxSpeedKmh: 201,
+                size: 200,
+                batteryLevel: 0.2,
+                speedLimitKmh: 30
+            )
         }
         .padding()
     }
 }
+
+

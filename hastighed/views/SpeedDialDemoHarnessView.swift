@@ -16,7 +16,7 @@ struct SpeedDialDemoHarnessView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            SpeedDialView(
+            SpeedometerView(
                 speedKmh: speedKmh,
                 maxSpeedKmh: max(120, (limitKmh ?? 100) * 2),
                 size: 260,

@@ -85,7 +85,7 @@ struct HomeView: View {
             // Top: Speed Dial (takes half vertically)
             ZStack {
                 if showSpeedometer {
-                    SpeedDialView(
+                    SpeedometerView(
                         speedKmh: Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: UnitSpeed.kilometersPerHour).value,
                         maxSpeedKmh: maxSpeedKmh,
                         size: min(
@@ -128,7 +128,7 @@ struct HomeView: View {
             HStack(spacing: 0) {
                 ZStack {
                     if showSpeedometer {
-                        SpeedDialView(
+                        SpeedometerView(
                             speedKmh: Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: UnitSpeed.kilometersPerHour).value,
                             maxSpeedKmh: maxSpeedKmh,
                             size: min(
@@ -220,7 +220,7 @@ struct HomeView: View {
 
                         // Dial (80%)
                         ZStack {
-                            SpeedDialView(
+                            SpeedometerView(
                                 speedKmh: Measurement(value: locationManager.currentSpeed, unit: UnitSpeed.metersPerSecond).converted(to: UnitSpeed.kilometersPerHour).value,
                                 maxSpeedKmh: maxSpeedKmh,
                                 size: dialSize
@@ -267,7 +267,7 @@ struct HomeView: View {
                 } else if showSpeedometer {
                     // Only dial visible: center it
                     ZStack {
-                        SpeedDialView(
+                        SpeedometerView(
                             speedKmh: locationManager.currentSpeed * 3.6,
                             maxSpeedKmh: maxSpeedKmh,
                             size: min(totalWidth, totalHeight) * 0.92,

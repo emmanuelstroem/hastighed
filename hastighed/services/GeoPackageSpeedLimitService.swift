@@ -86,7 +86,6 @@ final class GeoPackageSpeedLimitService: ObservableObject {
             
             if let candidate = queryNearestFeature(in: table, pkCol: pkCol, geomCol: geomCol, srsId: srsId, bbox: bbox, near: location.coordinate, searchRadiusMeters: radiusMeters) {
                 if let parsed = parseRawAndKmh(from: candidate.tags) {
-                    logger.info("GPKG match row=\(candidate.rowid, privacy: .public) -> value=\(parsed.kmh ?? -1, privacy: .public)")
                     self.currentSpeedLimitRawValue = parsed.kmh
                     self.currentSpeedLimitRawUnit = nil
                     return parsed.kmh
@@ -176,14 +175,12 @@ final class GeoPackageSpeedLimitService: ObservableObject {
             // Pick optional direct attributes if present
         let maxspeedCol: String? = ["maxspeed", "max_speed", "speed_limit"].first(where: { columnSet.contains($0) })
         let highwayCol: String? = columnSet.contains("highway") ? "highway" : nil
-        logger.debug("Columns detected for \(table, privacy: .public): geom=\(geomCol, privacy: .public), tagsCol=\(tagsCol ?? "none", privacy: .public), maxspeedCol=\(maxspeedCol ?? "none", privacy: .public), highwayCol=\(highwayCol ?? "none", privacy: .public)")
         
         
             // Try RTree index per GPKG spec: rtree_{table}_{geomCol}
         let rtree = "rtree_\(table)_\(geomCol)"
         var hasRtree = false
         do { hasRtree = try tableExists(name: rtree) } catch { hasRtree = false }
-        logger.debug("RTree present: \(hasRtree, privacy: .public) name=\(rtree, privacy: .public)")
         
         
             // Build SELECT list dynamically: PK, geom, [tags?], [maxspeed?], [highway?]
@@ -292,7 +289,7 @@ final class GeoPackageSpeedLimitService: ObservableObject {
                 continue
             }
         }
-        logger.debug("Nearest feature scan complete. Rows=\(rowCount, privacy: .public), bestDist=\(bestDist, privacy: .public)")
+        
         
             // Only accept a candidate if it's within the current search radius
         if let best, bestDist.isFinite, bestDist <= searchRadiusMeters { return best }

@@ -90,7 +90,8 @@ struct SpeedometerView: View {
                                 )
                                 .frame(width: size, height: size)
                                 .shadow(color: .cyan.opacity(0.30), radius: 6)
-                                .animation(.easeInOut(duration: 0.25), value: progress)
+                                // Instant updates for maximum responsiveness
+                                .animation(nil, value: progress)
                                 .animation(nil, value: severity)
                         case .buffer:
                             ArcSegment(startAngleDegrees: 315, sweepDegrees: 270, progress: progress, inset: 0, clockwise: false)
@@ -100,7 +101,7 @@ struct SpeedometerView: View {
                                 )
                                 .frame(width: size, height: size)
                                 .shadow(color: .orange.opacity(0.30), radius: 6)
-                                .animation(.easeInOut(duration: 0.25), value: progress)
+                                .animation(nil, value: progress)
                                 .animation(nil, value: severity)
                         case .over:
                             ArcSegment(startAngleDegrees: 315, sweepDegrees: 270, progress: progress, inset: 0, clockwise: false)
@@ -110,7 +111,7 @@ struct SpeedometerView: View {
                                 )
                                 .frame(width: size, height: size)
                                 .shadow(color: .red.opacity(0.30), radius: 6)
-                                .animation(.easeInOut(duration: 0.25), value: progress)
+                                .animation(nil, value: progress)
                                 .animation(nil, value: severity)
                         }
                     } else {
@@ -131,7 +132,7 @@ struct SpeedometerView: View {
                             )
                             .frame(width: size, height: size)
                             .shadow(color: .cyan.opacity(0.30), radius: 6)
-                            .animation(.easeInOut(duration: 0.25), value: progress)
+                            .animation(nil, value: progress)
                     }
                 }
             }

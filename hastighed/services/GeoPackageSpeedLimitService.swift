@@ -7,6 +7,8 @@ import Combine
 final class GeoPackageSpeedLimitService: ObservableObject {
     private let logger = Logger(subsystem: "com.eopio.hastighed", category: "GeoPackageSpeedLimitService")
     private var db: OpaquePointer?
+    // Serialize all DB reads to avoid contention and UI hitches
+    private let queryQueue = DispatchQueue(label: "com.eopio.hastighed.gpkg.query", qos: .userInitiated)
     
     @Published var currentSpeedLimit: Int?
     @Published var currentSpeedLimitRawValue: Int?
@@ -139,12 +141,16 @@ final class GeoPackageSpeedLimitService: ObservableObject {
     
         // Public API: compute, publish, and persist
     func querySpeedLimitAndPublish(for location: CLLocation) {
-        let result = querySpeedLimit(for: location)
-        DispatchQueue.main.async {
-            self.currentSpeedLimit = result
-            if let value = result { UserDefaults.standard.set(value, forKey: "currentSpeedLimit") }
-            UserDefaults.standard.set(self.currentSpeedLimitRawValue, forKey: "currentSpeedLimitRawValue")
-            UserDefaults.standard.set(self.currentSpeedLimitRawUnit, forKey: "currentSpeedLimitRawUnit")
+        let loc = location
+        queryQueue.async { [weak self] in
+            guard let self else { return }
+            let result = self.querySpeedLimit(for: loc)
+            DispatchQueue.main.async {
+                self.currentSpeedLimit = result
+                if let value = result { UserDefaults.standard.set(value, forKey: "currentSpeedLimit") }
+                UserDefaults.standard.set(self.currentSpeedLimitRawValue, forKey: "currentSpeedLimitRawValue")
+                UserDefaults.standard.set(self.currentSpeedLimitRawUnit, forKey: "currentSpeedLimitRawUnit")
+            }
         }
     }
     
@@ -157,6 +163,41 @@ final class GeoPackageSpeedLimitService: ObservableObject {
         let val = UserDefaults.standard.object(forKey: "currentSpeedLimitRawValue") as? Int
         let unit = UserDefaults.standard.object(forKey: "currentSpeedLimitRawUnit") as? String
         return (val, unit)
+    }
+
+    // Async helpers for UI layer
+    func queryRoadContextAsync(for location: CLLocation, completion: @escaping (RoadContext?) -> Void) {
+        let loc = location
+        queryQueue.async { [weak self] in
+            guard let self else { return }
+            let ctx = self.queryRoadContext(for: loc)
+            DispatchQueue.main.async { completion(ctx) }
+        }
+    }
+
+    func computeUpcomingSpeedLimit(
+        currentLocation: CLLocation,
+        aheadLocation: CLLocation,
+        currentLimit: Int?,
+        completion: @escaping (Int?) -> Void
+    ) {
+        let cur = currentLocation
+        let ahead = aheadLocation
+        queryQueue.async { [weak self] in
+            guard let self else { return }
+            let currentCtx = self.queryRoadContext(for: cur)
+            let aheadCtx = self.queryRoadContext(for: ahead)
+            var upcoming: Int? = nil
+            if let currentCtx, let aheadCtx,
+               let current = currentLimit,
+               let next = aheadCtx.speedKmh,
+               next != current {
+                let sameRoad = (currentCtx.roadId == aheadCtx.roadId)
+                    || ((currentCtx.name?.lowercased() ?? "") == (aheadCtx.name?.lowercased() ?? ""))
+                if sameRoad { upcoming = next }
+            }
+            DispatchQueue.main.async { completion(upcoming) }
+        }
     }
     
     private func detectRoadsTable(db: OpaquePointer) -> String? {

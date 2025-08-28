@@ -1,3 +1,10 @@
+## Speedometer Responsiveness and Accuracy
+
+- [ ] Consider dynamic smoothing: increase responsiveness (higher alpha) at higher speeds and reduce jitter at low speeds.
+- [ ] Gate zeroing with Core Motion activity to clamp stationary jitter confidently.
+- [ ] Add a setting to toggle animations on the dial for users who prefer smooth vs. instant.
+- [ ] Add a performance test that simulates 10 Hz speed updates to ensure the UI stays under 16 ms per frame.
+
 # TODO
 
 ## Phase 2 Enhancements (Completed ✅)

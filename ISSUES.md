@@ -2,6 +2,21 @@
 
 ## Current Issues
 
+### Speedometer Responsiveness vs. Device Speed
+- Status: Fixed ✅
+- Description: The speedometer needle and number lagged behind Core Location updates, and UI briefly stuttered during location updates.
+- Root causes:
+  - The speed arc used easing animations, delaying visual updates by ~250 ms.
+  - Speed limit and road context lookups happened on the main thread inside the location callback, risking UI hitches.
+- Fixes:
+  - Removed implicit animations from `SpeedometerView` arc progress so updates are instantaneous.
+  - Moved GeoPackage reads to a dedicated serial queue; publishing happens back on the main thread.
+  - Added async helpers for upcoming speed limit computation to avoid synchronous DB work on the main thread.
+- Files:
+  - `views/SpeedometerView.swift`: removed animations.
+  - `services/GeoPackageSpeedLimitService.swift`: added query queue and async helpers.
+  - `LocationManager.swift`: uses async upcoming limit helper.
+
 ### GeoJSON File Loading
 - **Status**: Resolved ✅
 - **Description**: Successfully implemented GeoJSON file loading from the app bundle's "osm" subdirectory.

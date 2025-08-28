@@ -294,24 +294,13 @@ extension LocationManager: CLLocationManagerDelegate {
         if location.course >= 0 {
             let aheadCoord = coordinate(aheadFrom: location.coordinate, distanceMeters: upcomingDistanceMeters, bearingDegrees: location.course)
             let aheadLocation = CLLocation(latitude: aheadCoord.latitude, longitude: aheadCoord.longitude)
-            // Determine current road context at present location
-            let currentCtx = gpkgService.queryRoadContext(for: location)
-            // Determine road context ahead in travel direction
-            let aheadCtx = gpkgService.queryRoadContext(for: aheadLocation)
-            if let currentCtx, let aheadCtx,
-               let current = self.currentSpeedLimit,
-               let next = aheadCtx.speedKmh,
-               next != current {
-                // Require either same road id or same name (robust when ids differ)
-                let sameRoad = (currentCtx.roadId == aheadCtx.roadId)
-                    || ((currentCtx.name?.lowercased() ?? "") == (aheadCtx.name?.lowercased() ?? ""))
-                if sameRoad {
-                    self.upcomingSpeedLimit = next
-                } else {
-                    self.upcomingSpeedLimit = nil
-                }
-            } else {
-                self.upcomingSpeedLimit = nil
+            gpkgService.computeUpcomingSpeedLimit(
+                currentLocation: location,
+                aheadLocation: aheadLocation,
+                currentLimit: self.currentSpeedLimit
+            ) { [weak self] upcoming in
+                guard let self else { return }
+                self.upcomingSpeedLimit = upcoming
             }
         } else {
             self.upcomingSpeedLimit = nil

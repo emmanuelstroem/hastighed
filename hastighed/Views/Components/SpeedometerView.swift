@@ -3,14 +3,16 @@ import SwiftUI
 struct SpeedometerView: View {
     var speedValue: Double
     var unit: String = "km/h"
-    var size: CGFloat = 140
+    /// Diameter used to derive proportional typography.
+    var diameter: CGFloat = 140
 
     var body: some View {
+        let numberFontSize = diameter * 0.44
         VStack(spacing: 8) {
             Text(String(format: "%.0f", speedValue))
-                .font(.system(size: size, weight: .medium, design: .rounded))
+                .font(.system(size: numberFontSize, weight: .medium, design: .rounded))
                 .contentTransition(.numericText())
-                .minimumScaleFactor(0.3)
+                .minimumScaleFactor(0.4)
             Text(unit)
                 .foregroundStyle(.secondary)
                 .font(.headline)

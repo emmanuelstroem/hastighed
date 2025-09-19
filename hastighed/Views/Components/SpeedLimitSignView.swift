@@ -8,13 +8,15 @@ struct SpeedLimitSignView: View {
     var ringWidth: CGFloat = 14
 
     var body: some View {
+        let numberFontSize = diameter * 0.42
+        let clampedRing = min(max(8, diameter * 0.09), 20)
         VStack(spacing: 4) {
             Text(String(format: "%.0f", limitValue))
-                .font(.system(size: diameter * 0.42, weight: .bold, design: .rounded))
+                .font(.system(size: numberFontSize, weight: .bold, design: .rounded))
                 .foregroundStyle(.black)
                 .frame(width: diameter, height: diameter)
                 .background(Circle().fill(Color.white))
-                .overlay(Circle().stroke(ringColor, lineWidth: ringWidth))
+                .overlay(Circle().stroke(ringColor, lineWidth: clampedRing))
                 .accessibilityHidden(true)
 //            Text(unit)
 //                .font(.footnote)

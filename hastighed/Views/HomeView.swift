@@ -82,42 +82,55 @@ struct HomeView: View {
     }
 
     var body: some View {
-        Group {
-            if hSize == .regular { landscapeLayout } else { portraitLayout }
+        GeometryReader { proxy in
+            let guide = LayoutGuide(containerSize: proxy.size, safeAreaInsets: proxy.safeAreaInsets)
+            let isLandscape = proxy.size.width >= proxy.size.height
+            ZStack {
+                if isLandscape {
+                    landscapeLayout(guide: guide, proxy: proxy)
+                        .transition(.opacity)
+                } else {
+                    portraitLayout(guide: guide, proxy: proxy)
+                        .transition(.opacity)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .background(Color.black.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+                .animation(.easeInOut(duration: 0.2), value: isLandscape)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .background(Color.black.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
     }
 
-    private var gauge: some View {
+    private func gauge(diameter: CGFloat) -> some View {
         let speedKmh = viewModel.speedReading?.speed.value ?? 0
         let displaySpeed = settings.displaySpeed(from: speedKmh)
-        let progress = speedKmh / max(settings.topSpeedKmh, 1)
+        let limitKmh = viewModel.speedLimit.value.value
         return ZStack {
-            GaugeArcView(progress: progress)
-            SpeedometerView(speedValue: displaySpeed, unit: settings.speedUnitLabel)
+            GaugeArcView(diameter: diameter, speedValue: speedKmh, speedLimit: limitKmh)
+            SpeedometerView(speedValue: displaySpeed, unit: settings.speedUnitLabel, diameter: diameter)
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    private var speedLimitSign: some View {
+    private func speedLimitSign(diameter: CGFloat) -> some View {
         let limitKmh = viewModel.speedLimit.value.value
         let displayLimit = settings.displayLimit(from: limitKmh)
-        return SpeedLimitSignView(limitValue: displayLimit, unit: settings.speedUnitLabel)
+        return SpeedLimitSignView(limitValue: displayLimit, unit: settings.speedUnitLabel, diameter: diameter)
             .padding(.bottom, 8)
     }
 
-    private var portraitLayout: some View {
-        VStack(spacing: 24) {
+    private func portraitLayout(guide: LayoutGuide, proxy: GeometryProxy) -> some View {
+        VStack(spacing: max(16, guide.spacing * 1.5)) {
             HStack { Spacer(); settingsButton }
-            gauge
+            // Stack gauge and sign vertically in portrait
+            VStack(spacing: max(12, guide.spacing)) {
+                gauge(diameter: guide.gaugeDiameterPortrait(maxWidth: proxy.size.width))
+                speedLimitSign(diameter: guide.signDiameter)
+            }
             if hasContextData {
                 contextChips
             }
-            Spacer()
-            speedLimitSign
             VStack(spacing: 6) {
                 accuracyBadge(viewModel.locationAccuracy)
                 Text("Experimental data – always follow posted signs.")
@@ -127,16 +140,23 @@ struct HomeView: View {
         }
     }
 
-    private var landscapeLayout: some View {
-        HStack(alignment: .top, spacing: 32) {
-            VStack { gauge; Spacer(); accuracyBadge(viewModel.locationAccuracy) }
-            VStack(alignment: .leading, spacing: 24) {
-                HStack { Spacer(); settingsButton }
+    private func landscapeLayout(guide: LayoutGuide, proxy: GeometryProxy) -> some View {
+        VStack(spacing: max(20, guide.spacing * 1.2)) {
+            HStack(alignment: .top, spacing: max(24, guide.spacing * 1.6)) {
+                // Place gauge and sign side-by-side in landscape
+                gauge(diameter: guide.gaugeDiameterLandscape(maxHeight: proxy.size.height))
+                VStack(alignment: .trailing, spacing: max(12, guide.spacing)) {
+                    HStack { Spacer(); settingsButton }
+                    speedLimitSign(diameter: guide.signDiameter)
+                    Spacer(minLength: 0)
+                }
+            }
+            // Secondary information below
+            VStack(alignment: .leading, spacing: max(20, guide.spacing * 1.4)) {
                 if !viewModel.upcomingLimitChanges.isEmpty { sectionCard(title: "Upcoming Limits", items: viewModel.upcomingLimitChanges, content: upcomingLimitRow) }
                 if !viewModel.speedCameras.isEmpty { sectionCard(title: "Speed Cameras", items: viewModel.speedCameras) { SpeedCameraRowView(camera: $0, distanceFormatter: distanceString) } }
                 if !viewModel.roadHazards.isEmpty { sectionCard(title: "Hazards", items: viewModel.roadHazards) { RoadHazardRowView(hazard: $0, distanceFormatter: distanceString) } }
-                Spacer()
-                HStack { Spacer(); speedLimitSign; Spacer() }
+                HStack { Spacer(); accuracyBadge(viewModel.locationAccuracy) }
             }
         }
     }

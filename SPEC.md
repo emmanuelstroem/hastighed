@@ -154,3 +154,96 @@ protocol SpeedLimitProviding {
 
 ---
 Version: 0.1.0 (Initial Draft)
+
+## 21. Home Screen Specification (Draft)
+
+### Objective
+Provide a single, distraction-minimised surface that shows: current speed, current legal speed limit, and imminent road context (upcoming limit changes, speed cameras, and hazards) within a 250 m look‑ahead corridor in the vehicle's heading direction.
+
+### Functional Requirements
+| ID | Requirement | Notes |
+|----|-------------|-------|
+| HS1 | Display current speed (large numeral) | Updated at least once per second when moving. |
+| HS2 | Display current speed limit (sign style) | Shows value + unit. Confidence coloring (later). |
+| HS3 | Show upcoming speed limit changes within 250 m | Sorted by distance ascending; only first 2 shown if space constrained. |
+| HS4 | Show speed cameras within 250 m | Icon + distance (rounded to 10 m). |
+| HS5 | Show other hazards (e.g., school zone, sharp bend) within 250 m | Placeholder model; initially mocked. |
+| HS6 | Hide sections with no data | Prevents clutter. |
+| HS7 | Degrade gracefully when location accuracy poor | Dim gauge + show small accuracy badge. |
+| HS8 | Landscape layout adapts: gauge left, stack of context cards right | See inspiration screenshot. |
+| HS9 | Provide quick access to settings (tolerance, units) | Floating gear button. |
+| HS10 | All context items expire once passed (distance < 0) | Real-time filtering. |
+
+### Non-Functional
+| Aspect | Target |
+|--------|--------|
+| Update Latency | < 500 ms from new location to UI refresh. |
+| Battery | Avoid constant high-accuracy when stationary (< 3 km/h). |
+| Accessibility | Supports Dynamic Type; VoiceOver labels for each context item. |
+
+### Data Models (Additions)
+```swift
+struct UpcomingSpeedLimitChange: Identifiable, Hashable {
+   let id = UUID()
+   let newLimit: SpeedLimit
+   let distanceMeters: Double
+}
+
+struct SpeedCamera: Identifiable, Hashable {
+   enum CameraType { case fixed, mobile, average }
+   let id = UUID()
+   let type: CameraType
+   let distanceMeters: Double
+}
+
+struct RoadHazard: Identifiable, Hashable {
+   enum HazardType { case schoolZone, sharpTurn, roadworks }
+   let id = UUID()
+   let type: HazardType
+   let distanceMeters: Double
+}
+```
+
+### Provider Protocols
+```swift
+protocol UpcomingLimitProviding { func upcomingChanges(within meters: Double, from location: CLLocation) -> [UpcomingSpeedLimitChange] }
+protocol SpeedCameraProviding { func nearbyCameras(within meters: Double, from location: CLLocation) -> [SpeedCamera] }
+protocol RoadHazardProviding { func nearbyHazards(within meters: Double, from location: CLLocation) -> [RoadHazard] }
+```
+
+Initial implementations will be mock / static collections filtered by distance along a naive straight‑line projection (bearing not yet considered in MVP of this feature).
+
+### View Model Responsibilities
+1. Subscribe to speed + location.
+2. Query providers each location update (throttle to 1 Hz).
+3. Filter items to distance ≤ 250 m and distance ≥ 0.
+4. Publish arrays for UI sections.
+5. Compute a simplified accuracy state (good / moderate / poor) for gauge styling.
+
+### UI Layout (Portrait)
+```
+┌─────────────────────────────────────────┐
+│   Time  • status icons                  │
+│                                         │
+│        (Semi-circle speed gauge)        │
+│                   0                     │
+│                 km/h                    │
+│                                         │
+│  Upcoming (if any)  Cameras  Hazards    │ (horizontal scroll or stacked chips)
+│                                         │
+│            [ Speed Limit Sign ]         │
+│                                         │
+│   Disclaimer / accuracy badge / gear    │
+└─────────────────────────────────────────┘
+```
+
+### UI Layout (Landscape)
+Gauge left 60%, right column lists upcoming items as compact cards with icon, label, distance, value.
+
+### Open Questions
+- Should average speed camera zones display entry + exit separately? (Defer)
+- Should we provide auditory cue when a new lower limit is within 100 m? (Future haptics/audio spec.)
+
+### Versioning
+Home Screen spec version: 0.1 (Initial Draft)
+

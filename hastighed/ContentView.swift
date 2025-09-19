@@ -9,17 +9,28 @@ import SwiftUI
 import CoreLocation
 
 struct ContentView: View {
-    @StateObject private var viewModel: SpeedMonitoringViewModel
+    @StateObject private var homeVM: HomeViewModel
+    @StateObject private var settings = SettingsStore()
 
     init() {
         let locationService = LocationService()
         let limitService = SpeedLimitService()
-        _viewModel = StateObject(wrappedValue: SpeedMonitoringViewModel(locationService: locationService, speedLimitService: limitService))
+        let upcoming = MockUpcomingLimitProvider()
+        let cameras = MockSpeedCameraProvider()
+        let hazards = MockRoadHazardProvider()
+        _homeVM = StateObject(wrappedValue: HomeViewModel(
+            locationService: locationService,
+            speedLimitService: limitService,
+            upcomingProvider: upcoming,
+            cameraProvider: cameras,
+            hazardProvider: hazards
+        ))
     }
 
     var body: some View {
-        SpeedMonitoringView(viewModel: viewModel)
-            .preferredColorScheme(.dark) // MVP: dark style for contrast
+        HomeView(viewModel: homeVM)
+            .environmentObject(settings)
+            .preferredColorScheme(.dark)
     }
 }
 

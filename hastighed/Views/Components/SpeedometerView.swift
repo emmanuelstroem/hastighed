@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SpeedometerView: View {
     var speedValue: Double
-    var unit: String = "km/h"
+    var unit: String = AppConstants.speedUnitLabel
     /// Diameter used to derive proportional typography.
     var diameter: CGFloat = 140
 

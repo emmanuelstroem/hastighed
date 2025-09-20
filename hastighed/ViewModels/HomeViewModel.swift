@@ -18,10 +18,13 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var speedCameras: [SpeedCamera] = []
     @Published private(set) var roadHazards: [RoadHazard] = []
     @Published private(set) var locationAccuracy: CLLocationAccuracy?
+    @Published private(set) var debugSnapshot: DebugSnapshot = DebugSnapshot(speed: nil, coordinate: nil, speedLimit: nil, unitLabel: AppConstants.speedUnitLabel)
+    @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    @Published var shouldShowPermissionOverlay: Bool = false
 
     // Config
     let lookAheadMeters: Double = 250
-    @Published var tolerance: Double = 3
+    @Published var tolerance: Double = 0 // kilometers
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -36,11 +39,18 @@ final class HomeViewModel: ObservableObject {
         self.cameraProvider = cameraProvider
         self.hazardProvider = hazardProvider
         bind()
+        updateDebugSnapshot()
         locationService.start()
     }
 
     private func bind() {
         locationService.speedPublisher
+            .removeDuplicates(by: { [weak self] lhs, rhs in
+                let dl = lhs.speed.converted(to: .kilometersPerHour).value
+                let dr = rhs.speed.converted(to: .kilometersPerHour).value
+                let tol = self?.tolerance ?? 0.1
+                return abs(dl - dr) < tol
+            })
             .receive(on: DispatchQueue.main)
             .sink { [weak self] reading in
                 guard let self else { return }
@@ -48,6 +58,23 @@ final class HomeViewModel: ObservableObject {
                 let limit = speedLimitService.currentSpeedLimit(for: locationService.latestLocation)
                 speedLimit = limit
                 refreshContext()
+                updateDebugSnapshot()
+            }
+            .store(in: &cancellables)
+
+        locationService.authorizationPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                guard let self else { return }
+                authorizationStatus = status
+                shouldShowPermissionOverlay = (status == .denied || status == .restricted)
+            }
+            .store(in: &cancellables)
+
+        locationService.coordinatePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateDebugSnapshot()
             }
             .store(in: &cancellables)
     }
@@ -59,6 +86,32 @@ final class HomeViewModel: ObservableObject {
         speedCameras = cameraProvider.nearbyCameras(within: lookAheadMeters, from: loc)
         roadHazards = hazardProvider.nearbyHazards(within: lookAheadMeters, from: loc)
     }
+
+    private func updateDebugSnapshot() {
+        let coord = locationService.latestCoordinate
+        debugSnapshot = DebugSnapshot(
+            speed: speedReading?.speed,
+            coordinate: coord,
+            speedLimit: speedLimit,
+            unitLabel: settingsUnitLabel()
+        )
+    }
+
+    private func settingsUnitLabel() -> String {
+        return AppConstants.speedUnitLabel
+    }
+
+    func requestPermissionIfNeeded() {
+        if authorizationStatus == .notDetermined {
+            locationService.requestAuthorization()
+        }
+    }
+
+    func openSettings() {
+        locationService.openAppSettings()
+    }
+
+    // battery saver removed
 }
 
 extension HomeViewModel {
@@ -66,8 +119,14 @@ extension HomeViewModel {
         class MockLocation: LocationServicing {
             var latestSpeed: Measurement<UnitSpeed>? = Measurement(value: 0, unit: .kilometersPerHour)
             var latestLocation: CLLocation? = CLLocation(latitude: 0, longitude: 0)
+            var latestCoordinate: CLLocationCoordinate2D? { latestLocation?.coordinate }
             let subject = PassthroughSubject<SpeedReading, Never>()
             var speedPublisher: AnyPublisher<SpeedReading, Never> { subject.eraseToAnyPublisher() }
+            var authorizationStatus: CLAuthorizationStatus = .authorizedWhenInUse
+            private let auth = CurrentValueSubject<CLAuthorizationStatus, Never>(.authorizedWhenInUse)
+            var authorizationPublisher: AnyPublisher<CLAuthorizationStatus, Never> { auth.eraseToAnyPublisher() }
+            private let coord = CurrentValueSubject<CLLocationCoordinate2D?, Never>(CLLocationCoordinate2D(latitude: 0, longitude: 0))
+            var coordinatePublisher: AnyPublisher<CLLocationCoordinate2D?, Never> { coord.eraseToAnyPublisher() }
             func start() {
                 for i in 0..<5 { // simulate increasing speeds
                     DispatchQueue.main.asyncAfter(deadline: .now() + Double(i)) {
@@ -76,6 +135,8 @@ extension HomeViewModel {
                 }
             }
             func stop() {}
+            func requestAuthorization() { /* no-op in preview */ }
+            func openAppSettings() { /* no-op in preview */ }
         }
         return HomeViewModel(
             locationService: MockLocation(),

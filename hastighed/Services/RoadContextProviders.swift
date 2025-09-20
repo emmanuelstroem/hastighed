@@ -28,8 +28,8 @@ final class MockUpcomingLimitProvider: UpcomingLimitProviding {
 final class MockSpeedCameraProvider: SpeedCameraProviding {
     func nearbyCameras(within meters: Double, from location: CLLocation) -> [SpeedCamera] {
         let cams = [
-            SpeedCamera(type: .fixed, distanceMeters: 140),
-            SpeedCamera(type: .mobile, distanceMeters: 300) // filtered
+            SpeedCamera(type: .fixed, distanceMeters: 250),
+            SpeedCamera(type: .mobile, distanceMeters: 250) // filtered
         ]
         return cams.filter { $0.distanceMeters <= meters }.sorted { $0.distanceMeters < $1.distanceMeters }
     }
@@ -38,8 +38,8 @@ final class MockSpeedCameraProvider: SpeedCameraProviding {
 final class MockRoadHazardProvider: RoadHazardProviding {
     func nearbyHazards(within meters: Double, from location: CLLocation) -> [RoadHazard] {
         let hazards = [
-            RoadHazard(type: .schoolZone, distanceMeters: 90),
-            RoadHazard(type: .roadworks, distanceMeters: 260) // filtered
+            RoadHazard(type: .schoolZone, distanceMeters: 100),
+            RoadHazard(type: .roadworks, distanceMeters: 250) // filtered
         ]
         return hazards.filter { $0.distanceMeters <= meters }.sorted { $0.distanceMeters < $1.distanceMeters }
     }

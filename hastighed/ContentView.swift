@@ -11,6 +11,7 @@ import CoreLocation
 struct ContentView: View {
     @StateObject private var homeVM: HomeViewModel
     @StateObject private var settings = SettingsStore()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         let locationService = LocationService()
@@ -31,6 +32,16 @@ struct ContentView: View {
         HomeView(viewModel: homeVM)
             .environmentObject(settings)
             .preferredColorScheme(.dark)
+            .onChange(of: scenePhase) { _, phase in
+                switch phase {
+                case .active:
+                    homeVM.requestPermissionIfNeeded()
+                case .background, .inactive:
+                    break
+                @unknown default:
+                    break
+                }
+            }
     }
 }
 

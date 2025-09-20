@@ -10,9 +10,22 @@
 		14C123F42E7CB1E30018FEC1 /* hastighed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = hastighed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		146B090F2E7ED3BC0097A637 /* Exceptions for "hastighed" folder in "hastighed" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 14C123F32E7CB1E30018FEC1 /* hastighed */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		14C123F62E7CB1E30018FEC1 /* hastighed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				146B090F2E7ED3BC0097A637 /* Exceptions for "hastighed" folder in "hastighed" target */,
+			);
 			path = hastighed;
 			sourceTree = "<group>";
 		};
@@ -256,6 +269,9 @@
 				DEVELOPMENT_TEAM = A9Q5VPE9WX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = hastighed/Info.plist;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Used to determine coordinates which are used to query for speed limits";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Used to determine speed of how fast the device is moving";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -287,6 +303,9 @@
 				DEVELOPMENT_TEAM = A9Q5VPE9WX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = hastighed/Info.plist;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Used to determine coordinates which are used to query for speed limits";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Used to determine speed of how fast the device is moving";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SpeedLimitSignView: View {
     var limitValue: Double
-    var unit: String = "km/h"
+    var unit: String = AppConstants.speedUnitLabel
     var diameter: CGFloat = 150
     var ringColor: Color = .red
     var ringWidth: CGFloat = 14

@@ -4,17 +4,21 @@ import Combine
 
 @MainActor
 final class SettingsStore: ObservableObject {
-    @AppStorage("topSpeedKmh") var topSpeedKmh: Double = 180 { willSet { objectWillChange.send() } }
-    @AppStorage("useImperialUnits") var useImperialUnits: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage(AppStorageKeys.vehicleTopSpeed) var vehicleTopSpeed: Double = 180 { willSet { objectWillChange.send() } }
+    @AppStorage(AppStorageKeys.isDebugOverlayEnabled) var isDebugOverlayEnabled: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage(AppStorageKeys.showGauge) var showGauge: Bool = true { willSet { objectWillChange.send() } }
+    @AppStorage(AppStorageKeys.showSpeedLimit) var showSpeedLimit: Bool = true { willSet { objectWillChange.send() } }
+    @AppStorage(AppStorageKeys.showSpeedCameras) var showSpeedCameras: Bool = true { willSet { objectWillChange.send() } }
+    @AppStorage(AppStorageKeys.showHazards) var showHazards: Bool = true { willSet { objectWillChange.send() } }
+    // Battery saver removed
 
-    var speedUnitLabel: String { useImperialUnits ? "mph" : "km/h" }
+    var speedUnitLabel: String { AppConstants.speedUnitLabel }
 
     func displaySpeed(from kmh: Double) -> Double {
-        if useImperialUnits { return kmh * 0.621371 } // km/h -> mph
         return kmh
     }
 
     func displayLimit(from kmh: Double) -> Double { displaySpeed(from: kmh) }
 
-    func convertToKmh(from displayed: Double) -> Double { useImperialUnits ? displayed / 0.621371 : displayed }
+    func convertToKmh(from displayed: Double) -> Double { displayed }
 }

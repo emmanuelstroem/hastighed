@@ -1,5 +1,6 @@
 import SwiftUI
 import _LocationEssentials
+import CoreLocation
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
@@ -93,12 +94,23 @@ struct HomeView: View {
                     portraitLayout(guide: guide, proxy: proxy)
                         .transition(.opacity)
                 }
+                if viewModel.shouldShowPermissionOverlay {
+                    permissionOverlay
+                        .transition(.opacity)
+                }
+                if settings.isDebugOverlayEnabled {
+                    VStack { HStack { DebugOverlayView(snapshot: viewModel.debugSnapshot); Spacer() }; Spacer() }
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                        .accessibilityIdentifier("debugOverlay")
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .background(Color.black.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
                 .animation(.easeInOut(duration: 0.2), value: isLandscape)
+                .onAppear { viewModel.requestPermissionIfNeeded() }
         }
     }
 
@@ -110,6 +122,7 @@ struct HomeView: View {
             GaugeArcView(diameter: diameter, speedValue: speedKmh, speedLimit: limitKmh)
             SpeedometerView(speedValue: displaySpeed, unit: settings.speedUnitLabel, diameter: diameter)
         }
+        .accessibilityIdentifier("gauge")
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
@@ -118,6 +131,7 @@ struct HomeView: View {
         let displayLimit = settings.displayLimit(from: limitKmh)
         return SpeedLimitSignView(limitValue: displayLimit, unit: settings.speedUnitLabel, diameter: diameter)
             .padding(.bottom, 8)
+            .accessibilityIdentifier("speedLimitSign")
     }
 
     private func portraitLayout(guide: LayoutGuide, proxy: GeometryProxy) -> some View {
@@ -125,8 +139,12 @@ struct HomeView: View {
             HStack { Spacer(); settingsButton }
             // Stack gauge and sign vertically in portrait
             VStack(spacing: max(12, guide.spacing)) {
-                gauge(diameter: guide.gaugeDiameterPortrait(maxWidth: proxy.size.width))
-                speedLimitSign(diameter: guide.signDiameter)
+                if settings.showGauge {
+                    gauge(diameter: guide.gaugeDiameterPortrait(maxWidth: proxy.size.width))
+                }
+                if settings.showSpeedLimit {
+                    speedLimitSign(diameter: guide.signDiameter)
+                }
             }
             if hasContextData {
                 contextChips
@@ -153,9 +171,9 @@ struct HomeView: View {
             }
             // Secondary information below
             VStack(alignment: .leading, spacing: max(20, guide.spacing * 1.4)) {
-                if !viewModel.upcomingLimitChanges.isEmpty { sectionCard(title: "Upcoming Limits", items: viewModel.upcomingLimitChanges, content: upcomingLimitRow) }
-                if !viewModel.speedCameras.isEmpty { sectionCard(title: "Speed Cameras", items: viewModel.speedCameras) { SpeedCameraRowView(camera: $0, distanceFormatter: distanceString) } }
-                if !viewModel.roadHazards.isEmpty { sectionCard(title: "Hazards", items: viewModel.roadHazards) { RoadHazardRowView(hazard: $0, distanceFormatter: distanceString) } }
+                if settings.showSpeedLimit && !viewModel.upcomingLimitChanges.isEmpty { sectionCard(title: "Upcoming Limits", items: viewModel.upcomingLimitChanges, content: upcomingLimitRow) }
+                if settings.showSpeedCameras && !viewModel.speedCameras.isEmpty { sectionCard(title: "Speed Cameras", items: viewModel.speedCameras) { SpeedCameraRowView(camera: $0, distanceFormatter: distanceString) } }
+                if settings.showHazards && !viewModel.roadHazards.isEmpty { sectionCard(title: "Hazards", items: viewModel.roadHazards) { RoadHazardRowView(hazard: $0, distanceFormatter: distanceString) } }
                 HStack { Spacer(); accuracyBadge(viewModel.locationAccuracy) }
             }
         }
@@ -207,10 +225,37 @@ struct HomeView: View {
                 .background(Circle().fill(Color.white.opacity(0.1)))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("settingsButton")
         .sheet(isPresented: $showingSettings) {
             SettingsView(settings: settings)
                 .preferredColorScheme(.dark)
         }
+    }
+
+    private var permissionOverlay: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "location.slash")
+                .font(.system(size: 36, weight: .bold))
+            Text("Location Permission Needed")
+                .font(.headline)
+            Text("To show your driving speed and nearby limits, enable Location for this app.")
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                Button("Open Settings") { viewModel.openSettings() }
+                    .buttonStyle(.borderedProminent)
+                Button("Not now") { /* dismiss remains overlay until granted; no-op */ }
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: 420)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(radius: 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.5).ignoresSafeArea())
     }
 }
 

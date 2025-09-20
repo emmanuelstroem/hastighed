@@ -37,7 +37,7 @@ struct SpeedMonitoringView: View {
                         .font(.system(size: speedFont, weight: .semibold, design: .rounded))
                         .minimumScaleFactor(0.4)
                         .contentTransition(.numericText())
-                    Text("km/h")
+                    Text(AppConstants.speedUnitLabel)
                         .font(.headline)
                         .foregroundStyle(.secondary)
                 }

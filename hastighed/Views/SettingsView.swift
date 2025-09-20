@@ -12,19 +12,30 @@ struct SettingsView: View {
                         HStack {
                             Text("Top Speed")
                             Spacer()
-                            Text(String(format: "%.0f %@", settings.displaySpeed(from: settings.topSpeedKmh), settings.speedUnitLabel))
+                            Text(String(format: "%.0f %@", settings.displaySpeed(from: settings.vehicleTopSpeed), settings.speedUnitLabel))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Slider(value: Binding(get: { settings.displaySpeed(from: settings.topSpeedKmh) }, set: { newVal in
-                            settings.topSpeedKmh = settings.convertToKmh(from: newVal)
+                        Slider(value: Binding(get: { settings.displaySpeed(from: settings.vehicleTopSpeed) }, set: { newVal in
+                            settings.vehicleTopSpeed = settings.convertToKmh(from: newVal)
                         }), in: 60...360, step: 5)
                     }
                 }
-                Section("Measurement") {
-                    Toggle(isOn: $settings.useImperialUnits) {
-                        Text("Use mph (instead of km/h)")
+                Section("Debug") {
+                    Toggle(isOn: $settings.isDebugOverlayEnabled) {
+                        Text("Debug Overlay")
                     }
+                    .accessibilityIdentifier("toggle.debugOverlay")
+                }
+                Section("Visibility") {
+                    Toggle(isOn: $settings.showGauge) { Text("Speedometer / Gauge") }
+                        .accessibilityIdentifier("toggle.showGauge")
+                    Toggle(isOn: $settings.showSpeedLimit) { Text("Speed Limit") }
+                        .accessibilityIdentifier("toggle.showSpeedLimit")
+                    Toggle(isOn: $settings.showSpeedCameras) { Text("Speed Cameras") }
+                        .accessibilityIdentifier("toggle.showSpeedCameras")
+                    Toggle(isOn: $settings.showHazards) { Text("Hazards") }
+                        .accessibilityIdentifier("toggle.showHazards")
                 }
                 Section(footer: Text("Changes persist automatically using App Storage.")) { EmptyView() }
             }

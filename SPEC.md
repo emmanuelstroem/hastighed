@@ -40,14 +40,16 @@
 3. Location & speed acquisition using `CoreLocation`.
 4. SwiftUI interface with color feedback:
    - Green: comfortably below.
-   - Amber: within configurable threshold (e.g., 0–3 km/h below/above limit).
+   - Amber: within ±5% of the current speed limit.
    - Red: exceeding.
 5. Basic settings (threshold tolerance, units km/h vs mph (later)).
 6. Disclaimer + responsibility notice.
+7. Apple CarPlay display showing current speed, speed limit, and visual alerts.
+8. Audible alert when speed exceeds the ±5% threshold over the current limit.
 
 Out of MVP (but planned soon):
 - Persistent settings sync (iCloud / AppStorage after MVP).
-- Background monitoring & CarPlay surface.
+- Background monitoring.
 - Real map tile / OpenStreetMap / HERE / TomTom integration.
 - Offline cache of speed limits.
 
@@ -60,6 +62,10 @@ Out of MVP (but planned soon):
 - Voice subtle prompts when approaching limit.
 
 ## 8. High-Level Architecture
+Technical baseline:
+- Language: Swift 6.x
+- Platform: iOS 17+
+- Testing: XCTest
 ```
 +---------------------------+            +---------------------------+
 |        SwiftUI UI         |<---------->|     ViewModel (State)     |
@@ -110,11 +116,13 @@ protocol SpeedLimitProviding {
 - Dynamic type friendly.
 - Color contrast meets WCAG (avoid pure saturated red on dark backgrounds for accessibility—choose slightly softened palette).
 - Optional subtle pulse animation when over limit.
+- Design focus: Liquid Glass aesthetic for on-device UI.
+- CarPlay Ultra design focus: clear, glanceable layout optimized for in-vehicle use.
 
 ## 13. Configuration & Thresholds
 | Setting | Default | Notes |
 |---------|---------|-------|
-| Near Tolerance (km/h) | 3 | Within this of limit triggers amber. |
+| Near Threshold (%) | 5 | Amber when within ±5% of the current speed limit. |
 | Units | km/h | mph future toggle. |
 
 ## 14. Error / Edge Case Handling
@@ -129,6 +137,7 @@ protocol SpeedLimitProviding {
 ## 16. Testing Strategy
 - Inject protocol abstractions for Location & SpeedLimit services to enable deterministic previews and unit tests.
 - Provide mock implementations with fixed sequences.
+- Framework: XCTest (unit and integration tests).
 
 ## 17. Risks & Mitigations
 | Risk | Mitigation |
@@ -146,6 +155,8 @@ protocol SpeedLimitProviding {
 - Displays current speed (simulated if on Simulator) within 2s of permission granted.
 - Shows a speed limit value & status color.
 - Updates color dynamically as simulated speed crosses limit thresholds.
+- Presents speed, speed limit, and visual alerts on Apple CarPlay display.
+- Plays an audible alert when current speed exceeds 5% over the current speed limit.
 
 ## 20. Glossary
 - MVP: Minimum Viable Product.
@@ -247,3 +258,25 @@ Gauge left 60%, right column lists upcoming items as compact cards with icon, la
 ### Versioning
 Home Screen spec version: 0.1 (Initial Draft)
 
+
+## 22. Performance Goals
+- Low energy utilization
+- Low CPU utilization
+- Loading time < 2 seconds (to first meaningful UI after permissions)
+- Perceptually instant speed and view refresh
+- Adaptive refresh rate between 1 Hz and 120 fps based on motion/state
+
+## 23. Constraints & Scale
+### Constraints
+- Offline-first capability: use GPKG for on-device street name and speed limit lookup; defer/sync downloads when online.
+- Memory utilization < 100 MB (steady-state target).
+- p95 response time < 200 ms for both GPKG queries and web requests.
+
+### Scale / Scope
+- 50k users
+- 1M LOC
+
+## 24. Apple CarPlay Support
+- Support Apple CarPlay with a dedicated display surface showing current speed, current speed limit, and visual alerts.
+- Follow CarPlay HIG; prioritize legibility and minimal interaction.
+- Mirror the over-limit state visually and play an audible alert when speed exceeds the ±5% threshold.

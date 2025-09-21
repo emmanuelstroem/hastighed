@@ -32,6 +32,13 @@
 - ❌ Avoid HOW to implement (no tech stack, APIs, code structure)
 - 👥 Written for business stakeholders, not developers
 
+### Project Defaults (for this repository)
+- Language: Swift 6.x
+- Target Platform: iOS 17+
+- Testing: XCTest
+- UI Threshold: Amber within ±5% of current speed limit
+- CarPlay: Display speed, speed limit, alerts; audible over-limit alert
+
 ### Section Requirements
 - **Mandatory sections**: Must be completed for every feature
 - **Optional sections**: Include only when relevant to the feature
@@ -81,6 +88,22 @@ When creating this spec from a user prompt:
 ### Key Entities *(include if feature involves data)*
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
+
+### Performance Goals *(include when relevant)*
+- Low energy utilization
+- Low CPU utilization
+- Loading time < 2 seconds to first meaningful UI
+- Perceptually instant view/speed refresh
+- Adaptive refresh rate between 1 Hz and 120 fps
+
+### Constraints & Scale *(include when relevant)*
+- Offline-first capability (use on-device GPKG for lookups when applicable)
+- Memory utilization < 100 MB
+- p95 response < 200 ms for on-device queries and web requests
+- Scale/Scope: 50k users; 1M LOC
+
+### Platform Support *(include when relevant)*
+- Apple CarPlay: Speed, speed limit, alerts on CarPlay display; audible alert when >5% over limit
 
 ---
 

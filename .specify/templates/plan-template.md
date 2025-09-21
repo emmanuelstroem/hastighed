@@ -34,15 +34,15 @@
 [Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Swift 6.x  
+**Primary Dependencies**: SwiftUI, CoreLocation, Network/NWPathMonitor  
+**Storage**: On-device GPKG (offline lookups), local cache  
+**Testing**: XCTest  
+**Target Platform**: iOS 17+  
+**Project Type**: mobile  
+**Performance Goals**: Low energy and CPU; <2s load; instant UI; 1 Hz–120 fps adaptive  
+**Constraints**: Offline-first; <200 ms p95 for GPKG and web; <100 MB memory  
+**Scale/Scope**: 50k users; 1M LOC
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
@@ -68,7 +68,7 @@ specs/[###-feature]/
 src/
 ├── models/
 ├── services/
-├── cli/
+├── views/
 └── lib/
 
 tests/
@@ -81,22 +81,28 @@ backend/
 ├── src/
 │   ├── models/
 │   ├── services/
-│   └── api/
+│   ├── api/
+│   └── views/
 └── tests/
 
 frontend/
 ├── src/
 │   ├── components/
-│   ├── pages/
+│   ├── views/
 │   └── services/
 └── tests/
 
-# Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+# Option 3: Mobile (iOS app in this repository)
+hastighed/
+├── Models/
+├── Services/
+├── ViewModels/
+├── Views/
+└── Resources/
 
-ios/ or android/
-└── [platform-specific structure]
+tests:
+├── hastighedTests/
+└── hastighedUITests/
 ```
 
 **Structure Decision**: [DEFAULT to Option 1 unless Technical Context indicates web/mobile app]

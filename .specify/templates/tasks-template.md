@@ -37,10 +37,10 @@
 - Include exact file paths in descriptions
 
 ## Path Conventions
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- iOS app in this repository:
+  - Source: `hastighed/` (Models, Services, ViewModels, Views)
+  - Tests: `hastighedTests/`, `hastighedUITests/`
+- Paths shown below assume this structure; adjust if the plan specifies otherwise
 
 ## Phase 3.1: Setup
 - [ ] T001 Create project structure per implementation plan
@@ -49,19 +49,10 @@
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-- [ ] T004 [P] Contract test POST /api/users in tests/contract/test_users_post.py
-- [ ] T005 [P] Contract test GET /api/users/{id} in tests/contract/test_users_get.py
-- [ ] T006 [P] Integration test user registration in tests/integration/test_registration.py
-- [ ] T007 [P] Integration test auth flow in tests/integration/test_auth.py
+- Replace with feature-specific XCTest targets and files under `hastighedTests/` and `hastighedUITests/`
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T008 [P] User model in src/models/user.py
-- [ ] T009 [P] UserService CRUD in src/services/user_service.py
-- [ ] T010 [P] CLI --create-user in src/cli/user_commands.py
-- [ ] T011 POST /api/users endpoint
-- [ ] T012 GET /api/users/{id} endpoint
-- [ ] T013 Input validation
-- [ ] T014 Error handling and logging
+- Replace with Swift files under `hastighed/` (e.g., Services, Models, ViewModels, Views)
 
 ## Phase 3.4: Integration
 - [ ] T015 Connect UserService to DB

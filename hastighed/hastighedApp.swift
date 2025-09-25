@@ -6,12 +6,15 @@
 //
 
 import SwiftUI
+import Network
 
 @main
 struct hastighedApp: App {
+    private let connectivityService = ConnectivityService.shared
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.connectivityService, connectivityService)
         }
     }
 }

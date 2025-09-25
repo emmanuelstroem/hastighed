@@ -10,6 +10,19 @@ struct DebugSnapshot {
 
 struct DebugOverlayView: View {
     let snapshot: DebugSnapshot
+    @Environment(\.connectivityService) private var connectivity
+
+    private var connectivityText: String {
+        let usable = connectivity.isInternetUsable()
+        let type: String
+        switch connectivity.currentNetworkType() {
+        case .wifi: type = "Wi‑Fi"
+        case .cellular: type = "Cellular"
+        case .other: type = "Other"
+        case .none: type = "None"
+        }
+        return (usable ? "Online" : "Offline") + " • " + type
+    }
 
     private var speedText: String {
         guard let s = snapshot.speed else { return "--" }
@@ -28,6 +41,7 @@ struct DebugOverlayView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            HStack { Text("Net:"); Spacer(); Text(connectivityText) }
             HStack { Text("Speed:"); Spacer(); Text(speedText).monospacedDigit() }
             HStack { Text("GPS:"); Spacer(); Text(coordText).monospacedDigit() }
             HStack { Text("Limit:"); Spacer(); Text(limitText).monospacedDigit() }

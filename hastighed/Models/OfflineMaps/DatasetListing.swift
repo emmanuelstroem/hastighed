@@ -1,6 +1,6 @@
 import Foundation
 
-public struct DatasetListing: Equatable, Hashable {
+public struct DatasetListing: Codable, Equatable, Hashable {
     public let datasetIdentifier: String
     public let countryName: String
     public let versionLabel: String?
@@ -23,6 +23,27 @@ public struct DatasetListing: Equatable, Hashable {
         self.remoteResourceAddress = remoteResourceAddress
         self.lastUpdatedDateDescription = lastUpdatedDateDescription
     }
+    
+    public nonisolated static let allDatasets: [DatasetListing] = [
+        DatasetListing(
+            datasetIdentifier: "denmark",
+            countryName: "Denmark",
+            expectedTotalByteCount: nil,
+            remoteResourceAddress: "https://hastighed.stillestorm.dk/denmark.gpkg"
+        ),
+        DatasetListing(
+            datasetIdentifier: "liechtenstein",
+            countryName: "Liechtenstein",
+            expectedTotalByteCount: nil,
+            remoteResourceAddress: "https://hastighed.stillestorm.dk/liechtenstein.gpkg"
+        ),
+        DatasetListing(
+            datasetIdentifier: "sweden",
+            countryName: "Sweden",
+            expectedTotalByteCount: nil,
+            remoteResourceAddress: "https://hastighed.stillestorm.dk/sweden.gpkg"
+        )
+    ]
 }
 
 

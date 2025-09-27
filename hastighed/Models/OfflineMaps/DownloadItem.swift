@@ -1,6 +1,6 @@
 import Foundation
 
-public enum DownloadStatus: String, Equatable {
+public enum DownloadStatus: String, Codable, Equatable {
     case queued
     case downloading
     case paused
@@ -9,7 +9,7 @@ public enum DownloadStatus: String, Equatable {
     case canceled
 }
 
-public struct DownloadItem: Equatable, Hashable {
+public struct DownloadItem: Codable, Equatable, Hashable {
     public let datasetIdentifier: String
     public var downloadStatus: DownloadStatus
     public var downloadedByteCount: Int64

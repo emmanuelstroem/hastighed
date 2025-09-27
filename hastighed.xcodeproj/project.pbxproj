@@ -78,6 +78,7 @@
 			);
 			name = hastighed;
 			packageProductDependencies = (
+				14C124032E7CB1E40018FEC1 /* Alamofire */,
 			);
 			productName = hastighed;
 			productReference = 14C123F42E7CB1E30018FEC1 /* hastighed.app */;
@@ -107,6 +108,9 @@
 			);
 			mainGroup = 14C123EB2E7CB1E30018FEC1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				14C124022E7CB1E40018FEC1 /* XCRemoteSwiftPackageReference "Alamofire" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 14C123F52E7CB1E30018FEC1 /* Products */;
 			projectDirPath = "";
@@ -349,6 +353,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		14C124022E7CB1E40018FEC1 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		14C124032E7CB1E40018FEC1 /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 14C124022E7CB1E40018FEC1 /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 14C123EC2E7CB1E30018FEC1 /* Project object */;
 }

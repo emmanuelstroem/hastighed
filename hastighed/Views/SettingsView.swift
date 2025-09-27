@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
-    @State private var offlineMapsViewModel = OfflineMapsViewModel(downloadService: DownloadService())
+    @StateObject private var offlineMapsViewModel = OfflineMapsViewModel()
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

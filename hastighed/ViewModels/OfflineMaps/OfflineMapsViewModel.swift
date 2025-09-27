@@ -2,65 +2,111 @@ import Foundation
 import Combine
 
 @MainActor
-final class OfflineMapsViewModel: ObservableObject {
-    @Published var datasetListings: [DatasetListing] = []
-    @Published var downloadItemsByIdentifier: [String: DownloadItem] = [:]
-
-    private let downloadService: DownloadServiceProtocol
-
-    init(downloadService: DownloadServiceProtocol) {
-        self.downloadService = downloadService
-        self.datasetListings = downloadService.listAvailableDatasets()
+public class OfflineMapsViewModel: ObservableObject {
+    
+    // MARK: - Published Properties
+    
+    @Published public var datasetListings: [DatasetListing] = []
+    @Published public var localFileAvailability: Set<String> = []
+    
+    // MARK: - Private Properties
+    
+    private let downloadService: DownloadService
+    private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Initialization
+    
+    public init() {
+        self.downloadService = DownloadService()
+        
+        // Set up data
+        self.datasetListings = DatasetListing.allDatasets
+        
+        // Listen to download service changes
+        downloadService.$downloadItemsByIdentifier
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+        
+        // Initial refresh
+        refreshAllStatuses()
     }
-
-    func startDownload(for datasetIdentifier: String) {
-        Task {
-            await downloadService.startDatasetDownload(datasetIdentifier: datasetIdentifier, userConfirmedCellularDownload: true)
-            await MainActor.run { self.refreshStatus(for: datasetIdentifier) }
+    
+    // MARK: - Public Interface
+    
+    /// Get download status for a dataset
+    public func status(for datasetIdentifier: String) -> DownloadItem? {
+        return downloadService.downloadItemsByIdentifier[datasetIdentifier]
+    }
+    
+    /// Check if a local file exists
+    public func localFileExists(for datasetIdentifier: String) -> Bool {
+        return downloadService.localFileExists(for: datasetIdentifier)
+    }
+    
+    /// Check if a download can be paused
+    public func canPauseDownload(for datasetIdentifier: String) -> Bool {
+        return downloadService.canPauseDownload(for: datasetIdentifier)
+    }
+    
+    /// Start a download
+    public func startDownload(for datasetIdentifier: String) {
+        downloadService.startDownload(for: datasetIdentifier, userConfirmedCellularDownload: true)
+    }
+    
+    /// Pause a download
+    public func pauseDownload(for datasetIdentifier: String) {
+        downloadService.pauseDownload(for: datasetIdentifier)
+    }
+    
+    /// Resume a download
+    public func resumeDownload(for datasetIdentifier: String) {
+        downloadService.resumeDownload(for: datasetIdentifier)
+    }
+    
+    /// Cancel a download
+    public func cancelDownload(for datasetIdentifier: String) {
+        downloadService.cancelDownload(for: datasetIdentifier)
+    }
+    
+    /// Delete a local file
+    public func deleteLocalFile(for datasetIdentifier: String) {
+        downloadService.deleteLocalFile(for: datasetIdentifier)
+        refreshLocalFiles()
+    }
+    
+    /// Toggle download state (start/pause/resume/delete)
+    public func toggleDownloadPause(for datasetIdentifier: String) {
+        downloadService.toggleDownloadState(for: datasetIdentifier)
+        refreshLocalFiles()
+    }
+    
+    /// Refresh all statuses
+    public func refreshAllStatuses() {
+        refreshLocalFiles()
+    }
+    
+    /// Get file size for a dataset
+    public func fileSize(for datasetIdentifier: String) -> Int64? {
+        // First check local file size
+        if let localSize = downloadService.localFileSize(for: datasetIdentifier) {
+            return localSize
         }
+        
+        // Fall back to expected size from dataset listing
+        return datasetListings.first { $0.datasetIdentifier == datasetIdentifier }?.expectedTotalByteCount
     }
-
-    func pauseDownload(for datasetIdentifier: String) {
-        Task {
-            await downloadService.pauseDatasetDownload(datasetIdentifier: datasetIdentifier)
-            await MainActor.run { self.refreshStatus(for: datasetIdentifier) }
+    
+    // MARK: - Private Methods
+    
+    private func refreshLocalFiles() {
+        var updated = Set<String>()
+        for listing in datasetListings {
+            if downloadService.localFileExists(for: listing.datasetIdentifier) {
+                updated.insert(listing.datasetIdentifier)
+            }
         }
-    }
-    func resumeDownload(for datasetIdentifier: String) {
-        Task {
-            await downloadService.resumeDatasetDownload(datasetIdentifier: datasetIdentifier)
-            await MainActor.run { self.refreshStatus(for: datasetIdentifier) }
-        }
-    }
-    func toggleDownloadPause(for datasetIdentifier: String) {
-        if status(for: datasetIdentifier)?.downloadStatus == .downloading {
-            pauseDownload(for: datasetIdentifier)
-        } else {
-            // For idle or paused, start/resume using the Download icon semantics
-            startDownload(for: datasetIdentifier)
-        }
-    }
-    // Cancel action removed per updated plan; keep API available but unused
-    func cancelDownload(for datasetIdentifier: String) {
-        Task {
-            await downloadService.cancelDatasetDownload(datasetIdentifier: datasetIdentifier)
-            await MainActor.run { self.refreshStatus(for: datasetIdentifier) }
-        }
-    }
-    func deleteLocalFile(for datasetIdentifier: String) {
-        Task {
-            try? await downloadService.deleteLocalDatasetFile(datasetIdentifier: datasetIdentifier)
-            await MainActor.run { self.refreshStatus(for: datasetIdentifier) }
-        }
-    }
-
-    func status(for datasetIdentifier: String) -> DownloadItem? {
-        downloadItemsByIdentifier[datasetIdentifier]
-    }
-
-    private func refreshStatus(for datasetIdentifier: String) {
-        downloadItemsByIdentifier[datasetIdentifier] = downloadService.getDatasetDownloadStatus(datasetIdentifier: datasetIdentifier)
+        localFileAvailability = updated
     }
 }
-
-

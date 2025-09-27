@@ -8,6 +8,7 @@ public class OfflineMapsViewModel: ObservableObject {
     
     @Published public var datasetListings: [DatasetListing] = []
     @Published public var localFileAvailability: Set<String> = []
+    @Published public var remoteFileSizes: [String: Int64] = [:]
     
     // MARK: - Private Properties
     
@@ -94,8 +95,48 @@ public class OfflineMapsViewModel: ObservableObject {
             return localSize
         }
         
-        // Fall back to expected size from dataset listing
-        return datasetListings.first { $0.datasetIdentifier == datasetIdentifier }?.expectedTotalByteCount
+        // Fall back to cached remote file size
+        return remoteFileSizes[datasetIdentifier]
+    }
+    
+    /// Fetch remote file size for a dataset
+    public func fetchRemoteFileSize(for datasetIdentifier: String) async -> Int64? {
+        guard let dataset = datasetListings.first(where: { $0.datasetIdentifier == datasetIdentifier }) else {
+            return nil
+        }
+        
+        do {
+            let url = URL(string: dataset.remoteResourceAddress)!
+            var request = URLRequest(url: url)
+            request.httpMethod = "HEAD" // Only get headers, not the full file
+            request.timeoutInterval = 10.0
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse,
+               httpResponse.statusCode == 200,
+               let contentLength = httpResponse.value(forHTTPHeaderField: "Content-Length"),
+               let size = Int64(contentLength) {
+                // Cache the result
+                remoteFileSizes[datasetIdentifier] = size
+                return size
+            }
+        } catch {
+            print("⚠️ Failed to fetch remote file size for \(datasetIdentifier): \(error)")
+        }
+        
+        return nil
+    }
+    
+    /// Fetch remote file sizes for all datasets
+    public func fetchAllRemoteFileSizes() async {
+        await withTaskGroup(of: Void.self) { group in
+            for dataset in datasetListings {
+                group.addTask {
+                    await self.fetchRemoteFileSize(for: dataset.datasetIdentifier)
+                }
+            }
+        }
     }
     
     // MARK: - Private Methods

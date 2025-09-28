@@ -43,7 +43,7 @@ public class DownloadService: ObservableObject {
     // MARK: - Public Interface
     
     /// Start a download for a dataset
-    public func startDownload(for datasetIdentifier: String, userConfirmedCellularDownload: Bool = false) {
+    public func startDownload(for datasetIdentifier: String) {
         guard let dataset = datasets.first(where: { $0.datasetIdentifier == datasetIdentifier }),
               let url = URL(string: dataset.remoteResourceAddress) else {
             print("❌ DownloadService: Invalid dataset or URL for \(datasetIdentifier)")
@@ -192,19 +192,6 @@ public class DownloadService: ObservableObject {
         downloadRequest.resume()
     }
     
-    /// Cancel a download
-    public func cancelDownload(for datasetIdentifier: String) {
-        guard let downloadRequest = downloadTasks[datasetIdentifier] else {
-            print("⚠️ DownloadService: No active download to cancel for \(datasetIdentifier)")
-            return
-        }
-        
-        print("❌ DownloadService: Canceling download for \(datasetIdentifier)")
-        downloadRequest.cancel()
-        downloadTasks.removeValue(forKey: datasetIdentifier)
-        
-        updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .canceled)
-    }
     
     /// Delete a downloaded file
     public func deleteLocalFile(for datasetIdentifier: String) {
@@ -244,10 +231,6 @@ public class DownloadService: ObservableObject {
         }
     }
     
-    /// Check if a download can be paused
-    public func canPauseDownload(for datasetIdentifier: String) -> Bool {
-        return downloadTasks[datasetIdentifier] != nil
-    }
     
     // MARK: - Private Methods
     

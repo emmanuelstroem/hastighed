@@ -46,30 +46,6 @@ public class OfflineMapsViewModel: ObservableObject {
         return downloadService.localFileExists(for: datasetIdentifier)
     }
     
-    /// Check if a download can be paused
-    public func canPauseDownload(for datasetIdentifier: String) -> Bool {
-        return downloadService.canPauseDownload(for: datasetIdentifier)
-    }
-    
-    /// Start a download
-    public func startDownload(for datasetIdentifier: String) {
-        downloadService.startDownload(for: datasetIdentifier, userConfirmedCellularDownload: true)
-    }
-    
-    /// Pause a download
-    public func pauseDownload(for datasetIdentifier: String) {
-        downloadService.pauseDownload(for: datasetIdentifier)
-    }
-    
-    /// Resume a download
-    public func resumeDownload(for datasetIdentifier: String) {
-        downloadService.resumeDownload(for: datasetIdentifier)
-    }
-    
-    /// Cancel a download
-    public func cancelDownload(for datasetIdentifier: String) {
-        downloadService.cancelDownload(for: datasetIdentifier)
-    }
     
     /// Delete a local file
     public func deleteLocalFile(for datasetIdentifier: String) {

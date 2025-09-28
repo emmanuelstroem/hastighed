@@ -37,7 +37,7 @@ struct EuCountriesSheetView: View {
         HStack(alignment: .center, spacing: 12) {
             HStack(spacing: 8) {
                 Text(dataset.countryName)
-                if let size = viewModel.fileSize(for: dataset.datasetIdentifier) {
+                if let size = dataset.expectedTotalByteCount {
                     Text(humanReadableSize(size)).font(.footnote).foregroundStyle(.secondary)
                 }
                 if item?.downloadStatus == .completed {
@@ -64,11 +64,6 @@ struct EuCountriesSheetView: View {
         .onAppear {
             print("🔍 EuCountriesSheetView onAppear - this should definitely show up!")
             viewModel.refreshAllStatuses()
-            
-            // Fetch remote file sizes asynchronously
-            Task {
-                await viewModel.fetchAllRemoteFileSizes()
-            }
         }
     }
 }
@@ -80,5 +75,3 @@ private func humanReadableSize(_ bytes: Int64) -> String {
     formatter.countStyle = .file
     return formatter.string(fromByteCount: bytes)
 }
-
-

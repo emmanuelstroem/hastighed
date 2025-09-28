@@ -1,4 +1,4 @@
-# Tasks: GPKG Download 4-State Management
+# Tasks: SHA512 Checksum-Based Update Detection for Offline Maps
 
 **Input**: Design documents from `/specs/005-specify-download-functionality/`
 **Prerequisites**: plan.md (required), research.md, data-model.md, contracts/
@@ -6,9 +6,8 @@
 ## Execution Flow (main)
 ```
 1. Load plan.md from feature directory
-   → If not found: ERROR "No implementation plan found"
-   → Extract: tech stack, libraries, structure
-2. Load optional design documents:
+   → Extract: Swift 6.x, SwiftUI, CoreLocation, Network/NWPathMonitor, XCTest, iOS 17+
+2. Load design documents:
    → data-model.md: Extract entities → model tasks
    → contracts/: Each file → contract test task
    → research.md: Extract decisions → setup tasks
@@ -25,11 +24,7 @@
 5. Number tasks sequentially (T001, T002...)
 6. Generate dependency graph
 7. Create parallel execution examples
-8. Validate task completeness:
-   → All contracts have tests?
-   → All entities have models?
-   → All endpoints implemented?
-9. Return: SUCCESS (tasks ready for execution)
+8. Validate task completeness
 ```
 
 ## Format: `[ID] [P?] Description`
@@ -40,123 +35,130 @@
 - iOS app in this repository:
   - Source: `hastighed/` (Models, Services, ViewModels, Views)
   - Tests: `hastighedTests/`, `hastighedUITests/`
-- Paths shown below assume this structure; adjust if the plan specifies otherwise
 
 ## Phase 3.1: Setup
-- [ ] T001 [P] Configure SwiftUI icon system for 4-state download management
-- [ ] T002 [P] Set up test infrastructure for download state transitions
+- [x] T001 [P] Configure SHA512 checksum validation utilities in `hastighed/Services/OfflineMaps/SHA512Utilities.swift`
+- [x] T002 [P] Add HTTP utilities for downloading .sha512 files in `hastighed/Services/OfflineMaps/SHA512DownloadService.swift`
+- [x] T003 [P] Create local SHA512 checksum service in `hastighed/Services/OfflineMaps/SHA512ChecksumService.swift`
+- [x] T004 [P] Create update detection orchestration service in `hastighed/Services/OfflineMaps/UpdateDetectionService.swift`
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
 
-- [ ] T003 [P] Contract test: Download state transitions in `hastighedTests/DownloadStateTransitionTests.swift`
-- [ ] T004 [P] Contract test: Icon visibility logic in `hastighedTests/DownloadIconVisibilityTests.swift`
-- [ ] T005 [P] Integration test: Complete download flow in `hastighedTests/DownloadFlowIntegrationTests.swift`
-- [ ] T006 [P] UI test: 4-state button behavior in `hastighedUITests/DownloadButtonUITests.swift`
+- [ ] T005 [P] Contract test SHA512 checksum validation in `hastighedTests/SHA512ChecksumServiceTests.swift`
+- [ ] T006 [P] Contract test .sha512 file downloading in `hastighedTests/SHA512DownloadServiceTests.swift`
+- [ ] T007 [P] Contract test SHA512 comparison logic in `hastighedTests/SHA512ComparisonServiceTests.swift`
+- [ ] T008 [P] Integration test update button visibility in `hastighedTests/UpdateButtonVisibilityTests.swift`
+- [ ] T009 [P] UI test update button interaction in `hastighedUITests/UpdateButtonUITests.swift`
+- [ ] T010 [P] Integration test SHA512 checksum persistence in `hastighedTests/SHA512ChecksumPersistenceTests.swift`
+- [ ] T011 [P] Performance test SHA512 validation for large files in `hastighedTests/SHA512ValidationPerformanceTests.swift`
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
 
-### Model Updates
-- [ ] T007 Update DownloadItem model to support all 4 states in `hastighed/Models/OfflineMaps/DownloadItem.swift`
-- [ ] T008 Add state transition validation logic in `hastighed/Models/OfflineMaps/DownloadItem.swift`
+### Data Models
+- [x] T012 Update DatasetListing model to include SHA512 checksum URLs in `hastighed/Models/OfflineMaps/DatasetListing.swift`
+- [x] T013 Update DownloadItem model to include SHA512 update status in `hastighed/Models/OfflineMaps/DownloadItem.swift`
 
-### Service Layer Updates
-- [ ] T009 Update DownloadService to handle resume state properly in `hastighed/Services/OfflineMaps/DownloadService.swift`
-- [ ] T010 Add delete state management in DownloadService in `hastighed/Services/OfflineMaps/DownloadService.swift`
-- [ ] T011 Implement proper state persistence for all 4 states in `hastighed/Services/OfflineMaps/DownloadService.swift`
+### Services
+- [x] T014 Update OfflineMapsViewModel to integrate SHA512 services in `hastighed/ViewModels/OfflineMaps/OfflineMapsViewModel.swift`
 
-### ViewModel Updates
-- [ ] T012 Update OfflineMapsViewModel to expose 4-state logic in `hastighed/ViewModels/OfflineMaps/OfflineMapsViewModel.swift`
-- [ ] T013 Add state-based icon selection logic in `hastighed/ViewModels/OfflineMaps/OfflineMapsViewModel.swift`
+### UI Components
+- [x] T015 [P] Create UpdateButtonView component in `hastighed/Views/Components/UpdateButtonView.swift`
+- [ ] T016 Update OfflineMapsSectionView to show update indicators in `hastighed/Views/OfflineMaps/OfflineMapsSectionView.swift`
 
-## Phase 3.4: UI Implementation
+## Phase 3.4: Integration
+- [ ] T017 Integrate SHA512ChecksumService with DownloadService for automatic SHA512 validation
+- [ ] T018 Integrate SHA512DownloadService with settings view presentation checks
+- [ ] T019 Integrate UpdateDetectionService with UI state management
+- [ ] T020 Add SHA512 checksum persistence to existing download state persistence
+- [ ] T021 Add update detection to settings view onAppear sequence
 
-### Icon System
-- [ ] T014 Create DownloadIconView component with 4-state support in `hastighed/Views/Components/DownloadIconView.swift`
-- [ ] T015 Implement circular progress ring for download state in `hastighed/Views/Components/DownloadIconView.swift`
-- [ ] T016 Add proper accessibility labels for each state in `hastighed/Views/Components/DownloadIconView.swift`
-
-### View Updates
-- [ ] T017 Update OfflineMapsSectionView to use new 4-state icon system in `hastighed/Views/OfflineMaps/OfflineMapsSectionView.swift`
-- [ ] T018 Remove old ProgressToggleButton and replace with DownloadIconView in `hastighed/Views/OfflineMaps/OfflineMapsSectionView.swift`
-- [ ] T019 Ensure delete icon shows only when file is fully downloaded and available locally in `hastighed/Views/OfflineMaps/OfflineMapsSectionView.swift`
-
-## Phase 3.5: Integration
-- [ ] T020 Connect DownloadIconView to DownloadService state changes in `hastighed/Views/Components/DownloadIconView.swift`
-- [ ] T021 Ensure proper state synchronization between service and UI in `hastighed/ViewModels/OfflineMaps/OfflineMapsViewModel.swift`
-- [ ] T022 Add error handling for state transition failures in `hastighed/Services/OfflineMaps/DownloadService.swift`
-
-## Phase 3.6: Polish
-- [ ] T023 [P] Unit tests for state transition edge cases in `hastighedTests/DownloadStateEdgeCaseTests.swift`
-- [ ] T024 [P] Performance tests for UI responsiveness during state changes in `hastighedTests/DownloadPerformanceTests.swift`
-- [ ] T025 [P] Update documentation for 4-state system in `hastighed/Models/OfflineMaps/DownloadItem.swift`
-- [ ] T026 Remove unused code and clean up imports in `hastighed/Views/OfflineMaps/OfflineMapsSectionView.swift`
-- [ ] T027 Run manual testing for all 4 states and transitions
+## Phase 3.5: Polish
+- [ ] T022 [P] Unit tests for SHA512 validation edge cases in `hastighedTests/SHA512ValidationEdgeCasesTests.swift`
+- [ ] T023 [P] Unit tests for SHA512 comparison logic in `hastighedTests/SHA512ComparisonLogicTests.swift`
+- [ ] T024 [P] Performance tests for SHA512 validation on large files in `hastighedTests/SHA512ValidationPerformanceTests.swift`
+- [ ] T025 [P] Accessibility tests for update button in `hastighedUITests/UpdateButtonAccessibilityTests.swift`
+- [ ] T026 [P] Update documentation with SHA512 checksum feature in `README.md`
+- [ ] T027 Remove debug logging and optimize SHA512 validation
+- [ ] T028 Run manual testing for SHA512-based update detection scenarios
 
 ## Dependencies
-- Tests (T003-T006) before implementation (T007-T022)
-- T007 blocks T008, T009, T010, T011
-- T009 blocks T012, T013
-- T014 blocks T015, T016, T017, T018, T019
-- T020 blocks T021, T022
-- Implementation before polish (T023-T027)
+- Tests (T005-T011) before implementation (T012-T015)
+- T012-T013 (Models) before T014 (Services)
+- T014 (Services) before T016 (UI)
+- T014 (Services) before T017-T021 (Integration)
+- Implementation before polish (T022-T028)
 
-## Parallel Example
+## Parallel Execution Examples
+
+### Phase 3.2: Test Development (T005-T011)
+```bash
+# Launch all test tasks in parallel:
+Task: "Create contract test SHA512 checksum validation in hastighedTests/SHA512ChecksumServiceTests.swift"
+Task: "Create contract test .sha512 file downloading in hastighedTests/SHA512DownloadServiceTests.swift"
+Task: "Create contract test SHA512 comparison logic in hastighedTests/SHA512ComparisonServiceTests.swift"
+Task: "Create integration test update button visibility in hastighedTests/UpdateButtonVisibilityTests.swift"
+Task: "Create UI test update button interaction in hastighedUITests/UpdateButtonUITests.swift"
+Task: "Create integration test SHA512 checksum persistence in hastighedTests/SHA512ChecksumPersistenceTests.swift"
+Task: "Create performance test SHA512 validation for large files in hastighedTests/SHA512ValidationPerformanceTests.swift"
 ```
-# Launch T003-T006 together:
-Task: "Contract test: Download state transitions in hastighedTests/DownloadStateTransitionTests.swift"
-Task: "Contract test: Icon visibility logic in hastighedTests/DownloadIconVisibilityTests.swift"
-Task: "Integration test: Complete download flow in hastighedTests/DownloadFlowIntegrationTests.swift"
-Task: "UI test: 4-state button behavior in hastighedUITests/DownloadButtonUITests.swift"
 
-# Launch T023-T025 together:
-Task: "Unit tests for state transition edge cases in hastighedTests/DownloadStateEdgeCaseTests.swift"
-Task: "Performance tests for UI responsiveness in hastighedTests/DownloadPerformanceTests.swift"
-Task: "Update documentation for 4-state system in hastighed/Models/OfflineMaps/DownloadItem.swift"
+### Phase 3.3: Model Creation (T012-T013)
+```bash
+# Launch model creation tasks in parallel:
+Task: "Update DatasetListing model to include SHA512 checksum URLs in hastighed/Models/OfflineMaps/DatasetListing.swift"
+Task: "Update DownloadItem model to include SHA512 update status in hastighed/Models/OfflineMaps/DownloadItem.swift"
 ```
 
-## State Transition Rules
-1. **Download State**: Show download icon (arrow.down.circle.fill) when no download exists or when resuming from paused
-2. **Pause State**: Show pause icon (pause.circle.fill) when download is in progress
-3. **Resume State**: Show download icon (arrow.down.circle.fill) when download is paused - same as download state
-4. **Delete State**: Show delete icon (trash.circle.fill) ONLY when file is fully downloaded and available locally
+### Phase 3.3: Service Creation (T014)
+```bash
+# Launch service creation tasks in parallel:
+Task: "Update OfflineMapsViewModel to integrate SHA512 services in hastighed/ViewModels/OfflineMaps/OfflineMapsViewModel.swift"
+```
 
-## Icon Specifications
-- **Download/Resume**: `arrow.down.circle.fill` with green color
-- **Pause**: `pause.circle.fill` with orange color  
-- **Delete**: `trash.circle.fill` with red color
-- **Progress Ring**: Circular progress indicator around the main icon during download
-- **Size**: 24pt system font, semibold weight
-- **Accessibility**: Each state must have appropriate VoiceOver labels
+### Phase 3.3: UI Component Creation (T015)
+```bash
+# Launch UI component tasks in parallel:
+Task: "Create UpdateButtonView component in hastighed/Views/Components/UpdateButtonView.swift"
+```
 
-## Notes
-- [P] tasks = different files, no dependencies
-- Verify tests fail before implementing
-- Commit after each task
-- Avoid: vague tasks, same file conflicts
-- Ensure delete icon only appears when `localFileExists(for: datasetIdentifier) == true` AND `downloadStatus == .completed`
+## Feature Requirements Summary
 
-## Task Generation Rules
-*Applied during main() execution*
+### SHA512 Checksum Tracking
+- Download both .gpkg and .sha512 files for each dataset
+- Validate local .gpkg files against their .sha512 files
+- Store SHA512 checksum metadata with download completion
+- Persist SHA512 checksum data across app launches
+- Support SHA512 validation for large files (>500MB)
 
-1. **From Contracts**:
-   - Each contract file → contract test task [P]
-   - Each endpoint → implementation task
-   
-2. **From Data Model**:
-   - Each entity → model creation task [P]
-   - Relationships → service layer tasks
-   
-3. **From User Stories**:
-   - Each story → integration test [P]
-   - Quickstart scenarios → validation tasks
+### Remote .sha512 File Fetching
+- Download .sha512 files from remote URLs (e.g., liechtenstein.gpkg.sha512)
+- Cache remote .sha512 files with timestamps
+- Handle network failures gracefully
+- Check for updates when settings view is presented
 
-4. **Ordering**:
-   - Setup → Tests → Models → Services → Endpoints → Polish
-   - Dependencies block parallel execution
+### Update Detection
+- Compare local .sha512 file content with remote .sha512 file content
+- Detect changes when SHA512 checksums differ
+- Show "update available" indicator in settings view
+- Show update button on maps with different SHA512 versions
+
+### Update Button UI
+- Show update button only when SHA512 checksums differ
+- Position next to download/delete button
+- Use refresh icon with visual indicator
+- Support accessibility with VoiceOver labels
+- Show different SHA512 version information
+
+### Integration Points
+- Integrate with existing DownloadService to download both file types
+- Integrate with existing OfflineMapsViewModel for settings view checks
+- Integrate with existing UI components
+- Maintain existing download functionality
+- Trigger update checks on settings view presentation
 
 ## Validation Checklist
-*GATE: Checked by main() before returning*
+*GATE: Checked before returning*
 
 - [ ] All contracts have corresponding tests
 - [ ] All entities have model tasks
@@ -164,5 +166,22 @@ Task: "Update documentation for 4-state system in hastighed/Models/OfflineMaps/D
 - [ ] Parallel tasks truly independent
 - [ ] Each task specifies exact file path
 - [ ] No task modifies same file as another [P] task
-- [ ] Delete icon visibility logic properly implemented
-- [ ] All 4 states have appropriate icons and accessibility labels
+- [ ] SHA512 validation supports large files
+- [ ] Update detection based on SHA512 checksum comparison
+- [ ] UI integration maintains existing functionality
+- [ ] Performance requirements met (<2s load, <100MB memory)
+- [ ] Settings view triggers update checks on presentation
+- [ ] Both .gpkg and .sha512 files are downloaded together
+
+## Notes
+- [P] tasks = different files, no dependencies
+- Verify tests fail before implementing
+- Commit after each task
+- Avoid: vague tasks, same file conflicts
+- SHA512 validation must be efficient for large files
+- Update detection must be reliable and fast
+- UI must maintain existing design patterns
+- Update checks triggered on settings view presentation
+- Both file types (.gpkg and .sha512) downloaded together
+- Use Swift Crypto framework for SHA512 calculations
+- Keep number of files to a minimum for maintainability

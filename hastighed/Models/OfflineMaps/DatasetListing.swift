@@ -7,6 +7,12 @@ public struct DatasetListing: Codable, Equatable, Hashable {
     public let expectedTotalByteCount: Int64?
     public let remoteResourceAddress: String
     public let lastUpdatedDateDescription: String?
+    
+    /// The URL for the corresponding .sha512 file
+    public var sha512URL: String {
+        let baseURL = remoteResourceAddress.replacingOccurrences(of: ".gpkg", with: "")
+        return "\(baseURL).gpkg.sha512"
+    }
 
     public init(
         datasetIdentifier: String,

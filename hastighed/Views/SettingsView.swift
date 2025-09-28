@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
+    @StateObject private var offlineMapsViewModel = OfflineMapsViewModel()
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -37,6 +38,7 @@ struct SettingsView: View {
                     Toggle(isOn: $settings.showHazards) { Text("Hazards") }
                         .accessibilityIdentifier("toggle.showHazards")
                 }
+                OfflineMapsSectionView(viewModel: offlineMapsViewModel)
                 Section(footer: Text("Changes persist automatically using App Storage.")) { EmptyView() }
             }
             .navigationTitle("Settings")

@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import MapKit
 import Combine
 
 /// Service for detecting the phone's current country/region from device settings
@@ -18,7 +19,6 @@ public class PhoneSettingsService: ObservableObject {
     
     private let locationService: LocationService
     private var cancellables = Set<AnyCancellable>()
-    private let geocoder = CLGeocoder()
     
     // MARK: - Initialization
     
@@ -36,22 +36,16 @@ public class PhoneSettingsService: ObservableObject {
         isDetecting = true
         detectionError = nil
         
-        print("🌍 PhoneSettingsService: Starting country detection")
-        print("🌍 PhoneSettingsService: Location service authorization status: \(locationService.authorizationStatus.rawValue)")
-        
         // If we have a recent location, use it immediately
         if let location = locationService.latestLocation {
-            print("🌍 PhoneSettingsService: Using existing location: \(location.coordinate)")
             detectCountry(from: location)
         } else {
-            print("🌍 PhoneSettingsService: No existing location, waiting for location update...")
             // Wait for location update
             locationService.coordinatePublisher
                 .compactMap { $0 }
                 .first()
                 .sink { [weak self] coordinate in
                     let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-                    print("🌍 PhoneSettingsService: Received new location: \(location.coordinate)")
                     self?.detectCountry(from: location)
                 }
                 .store(in: &cancellables)
@@ -98,43 +92,57 @@ public class PhoneSettingsService: ObservableObject {
     }
     
     private func detectCountry(from location: CLLocation) {
-        print("🌍 PhoneSettingsService: Detecting country from location: \(location.coordinate)")
-        print("🌍 PhoneSettingsService: Location accuracy: \(location.horizontalAccuracy) meters")
-        
-        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
-            DispatchQueue.main.async {
-                self?.isDetecting = false
-                
-                if let error = error {
-                    print("❌ PhoneSettingsService: Geocoding failed: \(error)")
-                    print("❌ PhoneSettingsService: Error details: \(error.localizedDescription)")
-                    self?.detectionError = error.localizedDescription
+        if #available(iOS 26.0, *) {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                defer { self.isDetecting = false }
+                guard let request = MKReverseGeocodingRequest(location: location) else {
+                    self.detectionError = "Unable to create reverse geocoding request"
                     return
                 }
-                
-                guard let placemark = placemarks?.first else {
-                    print("⚠️ PhoneSettingsService: No placemarks found")
-                    self?.detectionError = "No location information found"
-                    return
+                do {
+                    let mapItems = try await request.mapItems
+                    guard let mapItem = mapItems.first else {
+                        self.detectionError = "Unable to determine country"
+                        return
+                    }
+                    // iOS 26+: Use addressRepresentations
+                    if let address = mapItem.addressRepresentations {
+                        guard let countryCode = address.regionName else {
+                            self.detectionError = "Unable to determine country"
+                            return
+                        }
+                        self.currentCountryCode = countryCode
+                        self.currentCountryName = countryCode
+                        self.lastDetectionDate = Date()
+                        self.detectionError = nil
+                    } else {
+                        self.detectionError = "Unable to determine country"
+                    }
+                } catch {
+                    self.detectionError = error.localizedDescription
                 }
-                
-                guard let countryCode = placemark.isoCountryCode else {
-                    print("⚠️ PhoneSettingsService: No country code found in placemark")
-                    print("⚠️ PhoneSettingsService: Placemark details: \(placemark)")
-                    self?.detectionError = "Unable to determine country code"
-                    return
+            }
+        } else {
+            let geocoder = CLGeocoder()
+            geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.isDetecting = false
+                    if let error = error {
+                        self.detectionError = error.localizedDescription
+                        return
+                    }
+                    guard let placemark = placemarks?.first,
+                          let countryCode = placemark.isoCountryCode else {
+                        self.detectionError = "Unable to determine country"
+                        return
+                    }
+                    self.currentCountryCode = countryCode
+                    self.currentCountryName = placemark.country
+                    self.lastDetectionDate = Date()
+                    self.detectionError = nil
                 }
-                
-                let countryName = placemark.country ?? "Unknown"
-                print("✅ PhoneSettingsService: Successfully detected country!")
-                print("✅ PhoneSettingsService: Country Code: \(countryCode)")
-                print("✅ PhoneSettingsService: Country Name: \(countryName)")
-                print("✅ PhoneSettingsService: Full placemark: \(placemark)")
-                
-                self?.currentCountryCode = countryCode
-                self?.currentCountryName = countryName
-                self?.lastDetectionDate = Date()
-                self?.detectionError = nil
             }
         }
     }

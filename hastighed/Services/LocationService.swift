@@ -136,8 +136,5 @@ extension LocationService: CLLocationManagerDelegate {
             manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
             manager.distanceFilter = 5 // meters
         }
-        #if DEBUG
-        print("[Location] speed=\(String(format: "%.1f", speedKmh)) km/h, acc=\(manager.desiredAccuracy), filter=\(manager.distanceFilter)")
-        #endif
     }
 }

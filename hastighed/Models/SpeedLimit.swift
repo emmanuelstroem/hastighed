@@ -7,6 +7,8 @@ struct SpeedLimit: Hashable, Identifiable {
         case ruleFallback   // Generic rule (e.g., country default) – lowest fidelity
         case inferred        // Derived heuristically from context
         case mapped          // From map / authoritative dataset
+        case offlineMap      // From offline GPKG road segment data
+        case offlineTraffic  // From offline GPKG traffic point data
     }
 
     let id = UUID()

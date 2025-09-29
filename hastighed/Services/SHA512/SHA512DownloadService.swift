@@ -37,59 +37,36 @@ public class SHA512DownloadService: ObservableObject {
     /// Check for updates by downloading .sha512 files for all datasets
     public func checkForUpdates(for datasetIdentifiers: [String]) async {
         guard !datasetIdentifiers.isEmpty else {
-            print("⚠️ SHA512DownloadService: No datasets to check")
             return
         }
         
         isCheckingForUpdates = true
         lastUpdateCheck = Date()
         
-        print("🔍 SHA512DownloadService: Checking for updates for \(datasetIdentifiers.count) datasets")
-        
-        let urls = datasetIdentifiers.compactMap { identifier in
-            let url = generateSHA512URL(for: identifier)
-            print("🔍 SHA512DownloadService: Generated URL for \(identifier): \(url?.absoluteString ?? "nil")")
-            return url
-        }
-        
-        let results = await downloadMultipleSHA512Files(from: urls)
-        
-        // Process results
-        for (url, content) in results {
-            print("🔍 SHA512DownloadService: Processing result from URL: \(url.absoluteString)")
-            print("🔍 SHA512DownloadService: Content preview: \(String(content.prefix(100)))...")
-            
-            if let identifier = extractDatasetIdentifier(from: url) {
-                let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
-                remoteChecksums[identifier] = trimmedContent
-                print("✅ SHA512DownloadService: Downloaded checksum for \(identifier): \(trimmedContent)")
-            } else {
-                print("❌ SHA512DownloadService: Could not extract identifier from URL: \(url.absoluteString)")
+        for identifier in datasetIdentifiers {
+            guard let url = generateSHA512URL(for: identifier) else {
+                continue
             }
+            downloadSHA512(for: identifier, from: url)
         }
         
         persistRemoteChecksums()
         isCheckingForUpdates = false
-        
-        print("✅ SHA512DownloadService: Update check completed. Found \(remoteChecksums.count) checksums")
     }
     
     /// Download a single .sha512 file for a given dataset identifier
     public func downloadChecksum(for datasetIdentifier: String) async -> String? {
         guard let url = generateSHA512URL(for: datasetIdentifier) else {
-            print("❌ SHA512DownloadService: Invalid URL for dataset \(datasetIdentifier)")
             return nil
         }
         
         guard let content = await downloadSHA512File(from: url) else {
-            print("❌ SHA512DownloadService: Failed to download .sha512 for \(datasetIdentifier)")
             return nil
         }
         
         let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         remoteChecksums[datasetIdentifier] = trimmedContent
         persistRemoteChecksums()
-        print("✅ SHA512DownloadService: Downloaded and stored single checksum for \(datasetIdentifier)")
         return trimmedContent
     }
     
@@ -113,10 +90,9 @@ public class SHA512DownloadService: ObservableObject {
                 .responseString { response in
                     switch response.result {
                     case .success(let content):
-                        print("✅ SHA512DownloadService: Successfully downloaded .sha512 file from \(url)")
                         continuation.resume(returning: content)
                     case .failure(let error):
-                        print("❌ SHA512DownloadService: Failed to download .sha512 file from \(url): \(error)")
+                        print("Error downloading SHA512 file: \(error.localizedDescription)")
                         continuation.resume(returning: nil)
                     }
                 }
@@ -149,6 +125,26 @@ public class SHA512DownloadService: ObservableObject {
         return String(identifier)
     }
     
+    private func downloadSHA512(for datasetIdentifier: String, from url: URL) {
+        session.request(url)
+            .validate()
+            .responseString { [weak self] response in
+                guard let self else { return }
+                switch response.result {
+                case .success(let content):
+                    let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+                    Task { @MainActor in
+                        self.remoteChecksums[datasetIdentifier] = trimmedContent
+                        self.persistRemoteChecksums()
+                    }
+                case .failure:
+                    Task { @MainActor in
+                        self.remoteChecksums.removeValue(forKey: datasetIdentifier)
+                    }
+                }
+            }
+    }
+    
     // MARK: - Persistence
     
     private func loadRemoteChecksums() {
@@ -156,10 +152,8 @@ public class SHA512DownloadService: ObservableObject {
             let data = try Data(contentsOf: persistenceURL)
             let decodedChecksums = try JSONDecoder().decode([String: String].self, from: data)
             self.remoteChecksums = decodedChecksums
-            print("✅ SHA512DownloadService: Loaded \(remoteChecksums.count) remote checksums from disk.")
         } catch {
-            print("⚠️ SHA512DownloadService: Failed to load remote checksums: \(error.localizedDescription). Starting fresh.")
-            self.remoteChecksums = [:]
+            self.remoteChecksums.removeAll()
         }
     }
     
@@ -167,9 +161,8 @@ public class SHA512DownloadService: ObservableObject {
         do {
             let data = try JSONEncoder().encode(remoteChecksums)
             try data.write(to: persistenceURL, options: [.atomicWrite])
-            print("💾 SHA512DownloadService: Persisted \(remoteChecksums.count) remote checksums to disk.")
         } catch {
-            print("❌ SHA512DownloadService: Failed to persist remote checksums: \(error.localizedDescription)")
         }
     }
 }
+

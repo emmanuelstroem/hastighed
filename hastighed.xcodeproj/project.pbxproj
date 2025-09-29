@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1437FC6D2E888D510047304E /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 14C124032E7CB1E40018FEC1 /* Alamofire */; };
+		147675BF2E89E36100E8FE9C /* GEOSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 147675BE2E89E36100E8FE9C /* GEOSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				147675BF2E89E36100E8FE9C /* GEOSwift in Frameworks */,
 				1437FC6D2E888D510047304E /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -84,6 +86,7 @@
 			name = hastighed;
 			packageProductDependencies = (
 				14C124032E7CB1E40018FEC1 /* Alamofire */,
+				147675BE2E89E36100E8FE9C /* GEOSwift */,
 			);
 			productName = hastighed;
 			productReference = 14C123F42E7CB1E30018FEC1 /* hastighed.app */;
@@ -115,6 +118,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				14C124022E7CB1E40018FEC1 /* XCRemoteSwiftPackageReference "Alamofire" */,
+				147675BD2E89E36100E8FE9C /* XCRemoteSwiftPackageReference "GEOSwift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 14C123F52E7CB1E30018FEC1 /* Products */;
@@ -206,6 +210,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -263,6 +268,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -360,6 +366,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		147675BD2E89E36100E8FE9C /* XCRemoteSwiftPackageReference "GEOSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GEOSwift/GEOSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.2.0;
+			};
+		};
 		14C124022E7CB1E40018FEC1 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
@@ -371,6 +385,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		147675BE2E89E36100E8FE9C /* GEOSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 147675BD2E89E36100E8FE9C /* XCRemoteSwiftPackageReference "GEOSwift" */;
+			productName = GEOSwift;
+		};
 		14C124032E7CB1E40018FEC1 /* Alamofire */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 14C124022E7CB1E40018FEC1 /* XCRemoteSwiftPackageReference "Alamofire" */;

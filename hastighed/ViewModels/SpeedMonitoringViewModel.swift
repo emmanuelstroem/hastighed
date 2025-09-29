@@ -17,12 +17,14 @@ final class SpeedMonitoringViewModel: ObservableObject {
     @Published var tolerance: Double = 0.1 // km/h
 
     private var cancellables = Set<AnyCancellable>()
+    private var speedLimitUpdateTimer: Timer?
 
     init(locationService: LocationServicing, speedLimitService: SpeedLimitProviding) {
         self.locationService = locationService
         self.speedLimitService = speedLimitService
         bind()
         locationService.start()
+        startSpeedLimitUpdates()
     }
 
     private func bind() {
@@ -43,6 +45,20 @@ final class SpeedMonitoringViewModel: ObservableObject {
                 self.status = self.deriveStatus(speed: reading.speed, limit: limit.value)
             }
             .store(in: &cancellables)
+        
+        // Subscribe to speed limit changes from the service
+        if let speedLimitService = speedLimitService as? SpeedLimitService {
+            speedLimitService.$currentSpeedLimit
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] newSpeedLimit in
+                    guard let self else { return }
+                    self.speedLimit = newSpeedLimit
+                    if let reading = self.speedReading {
+                        self.status = self.deriveStatus(speed: reading.speed, limit: newSpeedLimit.value)
+                    }
+                }
+                .store(in: &cancellables)
+        }
     }
 
     private func deriveStatus(speed: Measurement<UnitSpeed>, limit: Measurement<UnitSpeed>) -> LimitStatus {
@@ -55,6 +71,34 @@ final class SpeedMonitoringViewModel: ObservableObject {
         } else { // over
             return .over(delta: delta)
         }
+    }
+    
+    // MARK: - Speed Limit Updates
+    
+    private func startSpeedLimitUpdates() {
+        // Update immediately on the main actor
+        Task { @MainActor in
+            self.updateSpeedLimit()
+        }
+        
+        // Set up timer to update every 2 seconds
+        speedLimitUpdateTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.updateSpeedLimit()
+            }
+        }
+    }
+    
+    private func updateSpeedLimit() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await speedLimitService.updateSpeedLimit(for: locationService.latestLocation)
+        }
+    }
+    
+    deinit {
+        speedLimitUpdateTimer?.invalidate()
     }
 }
 
@@ -85,7 +129,13 @@ extension SpeedMonitoringViewModel {
         }
         class MockLimit: SpeedLimitProviding {
             func currentSpeedLimit(for location: CLLocation?) -> SpeedLimit { SpeedLimit(kmh: 50, source: .ruleFallback, confidence: 0.4) }
+            func currentSpeedLimitPublisher(for location: CLLocation?) -> AnyPublisher<SpeedLimit, Never> {
+                Just(SpeedLimit(kmh: 50, source: .ruleFallback, confidence: 0.4)).eraseToAnyPublisher()
+            }
+            func updateSpeedLimit(for location: CLLocation?) async { }
+            var currentSpeedLimit: SpeedLimit { SpeedLimit(kmh: 50, source: .ruleFallback, confidence: 0.4) }
         }
         return SpeedMonitoringViewModel(locationService: MockLocation(), speedLimitService: MockLimit())
     }
 }
+

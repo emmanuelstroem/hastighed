@@ -126,11 +126,11 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    private func speedLimitSign(diameter: CGFloat) -> some View {
+    private func speedLimitSign(diameter: CGFloat, bottomPadding: CGFloat = 8) -> some View {
         let limitKmh = viewModel.speedLimit.value.value
         let displayLimit = settings.displayLimit(from: limitKmh)
         return SpeedLimitSignView(limitValue: displayLimit, unit: settings.speedUnitLabel, diameter: diameter)
-            .padding(.bottom, 8)
+            .padding(.bottom, bottomPadding)
             .accessibilityIdentifier("speedLimitSign")
     }
 
@@ -159,23 +159,34 @@ struct HomeView: View {
     }
 
     private func landscapeLayout(guide: LayoutGuide, proxy: GeometryProxy) -> some View {
-        VStack(spacing: max(20, guide.spacing * 1.2)) {
-            HStack(alignment: .top, spacing: max(24, guide.spacing * 1.6)) {
-                // Place gauge and sign side-by-side in landscape
-                gauge(diameter: guide.gaugeDiameterLandscape(maxHeight: proxy.size.height))
-                VStack(alignment: .trailing, spacing: max(12, guide.spacing)) {
-                    HStack { Spacer(); settingsButton }
-                    speedLimitSign(diameter: guide.signDiameter)
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: max(20, guide.spacing * 1.2)) {
+                let gaugeDiameter = guide.gaugeDiameterLandscape(maxHeight: proxy.size.height)
+                HStack(alignment: .center, spacing: max(24, guide.spacing * 1.6)) {
+                    Spacer(minLength: 0)
+                    // Place gauge and sign side-by-side in landscape
+                    gauge(diameter: gaugeDiameter)
+                        .frame(width: gaugeDiameter)
+                    Spacer(minLength: 0)
+                    if settings.showSpeedLimit {
+                        speedLimitSign(diameter: guide.signDiameter, bottomPadding: 0)
+                            .frame(height: gaugeDiameter, alignment: .center)
+                    }
                     Spacer(minLength: 0)
                 }
+                // Secondary information below
+                VStack(alignment: .leading, spacing: max(20, guide.spacing * 1.4)) {
+                    if settings.showSpeedLimit && !viewModel.upcomingLimitChanges.isEmpty { sectionCard(title: "Upcoming Limits", items: viewModel.upcomingLimitChanges, content: upcomingLimitRow) }
+                    if settings.showSpeedCameras && !viewModel.speedCameras.isEmpty { sectionCard(title: "Speed Cameras", items: viewModel.speedCameras) { SpeedCameraRowView(camera: $0, distanceFormatter: distanceString) } }
+                    if settings.showHazards && !viewModel.roadHazards.isEmpty { sectionCard(title: "Hazards", items: viewModel.roadHazards) { RoadHazardRowView(hazard: $0, distanceFormatter: distanceString) } }
+                    HStack { Spacer(); accuracyBadge(viewModel.locationAccuracy) }
+                }
             }
-            // Secondary information below
-            VStack(alignment: .leading, spacing: max(20, guide.spacing * 1.4)) {
-                if settings.showSpeedLimit && !viewModel.upcomingLimitChanges.isEmpty { sectionCard(title: "Upcoming Limits", items: viewModel.upcomingLimitChanges, content: upcomingLimitRow) }
-                if settings.showSpeedCameras && !viewModel.speedCameras.isEmpty { sectionCard(title: "Speed Cameras", items: viewModel.speedCameras) { SpeedCameraRowView(camera: $0, distanceFormatter: distanceString) } }
-                if settings.showHazards && !viewModel.roadHazards.isEmpty { sectionCard(title: "Hazards", items: viewModel.roadHazards) { RoadHazardRowView(hazard: $0, distanceFormatter: distanceString) } }
-                HStack { Spacer(); accuracyBadge(viewModel.locationAccuracy) }
-            }
+            .frame(maxHeight: .infinity, alignment: .center)
+
+            settingsButton
+                .padding(.top, 4)
+                .padding(.trailing, 4)
         }
     }
 

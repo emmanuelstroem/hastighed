@@ -261,7 +261,10 @@ private func logStreetNameChange(from previous: String?, to current: String?) {
 }
 
 private func logMaxspeedChange(from previous: Int?, to current: Int?) {
-    guard previous != current else { return }
+    guard previous != current else {
+        print("ℹ️ Speed Limit: \(describeSpeed(current)) (unchanged)")
+        return
+    }
     print("ℹ️ Speed Limit: \(describeSpeed(previous)) --> \(describeSpeed(current))")
 }
 

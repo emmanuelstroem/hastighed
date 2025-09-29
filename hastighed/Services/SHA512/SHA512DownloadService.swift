@@ -133,10 +133,14 @@ public class SHA512DownloadService: ObservableObject {
                 switch response.result {
                 case .success(let content):
                     let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
-                    self.remoteChecksums[datasetIdentifier] = trimmedContent
-                    self.persistRemoteChecksums()
+                    Task { @MainActor in
+                        self.remoteChecksums[datasetIdentifier] = trimmedContent
+                        self.persistRemoteChecksums()
+                    }
                 case .failure:
-                    self.remoteChecksums.removeValue(forKey: datasetIdentifier)
+                    Task { @MainActor in
+                        self.remoteChecksums.removeValue(forKey: datasetIdentifier)
+                    }
                 }
             }
     }
@@ -161,3 +165,4 @@ public class SHA512DownloadService: ObservableObject {
         }
     }
 }
+

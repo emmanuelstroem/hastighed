@@ -127,11 +127,16 @@ final class HomeViewModel: ObservableObject {
     
     private func startSpeedLimitUpdates() {
         // Update immediately
-        updateSpeedLimit()
+        Task { @MainActor in
+            self.updateSpeedLimit()
+        }
         
         // Set up timer to update every 2 seconds
         speedLimitUpdateTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.updateSpeedLimit()
+            guard let self else { return }
+            Task { @MainActor in
+                self.updateSpeedLimit()
+            }
         }
     }
     
@@ -175,7 +180,7 @@ extension HomeViewModel {
         let realLocationService = LocationService()
         return HomeViewModel(
             locationService: mockLocation,
-            speedLimitService: SpeedLimitService(phoneCountryService: PhoneCountryDetectionService(locationService: realLocationService), connectivityService: ConnectivityService.shared),
+            speedLimitService: SpeedLimitService(phoneSettingsService: PhoneSettingsService(locationService: realLocationService), connectivityService: ConnectivityService.shared),
             upcomingProvider: MockUpcomingLimitProvider(),
             cameraProvider: MockSpeedCameraProvider(),
             hazardProvider: MockRoadHazardProvider()

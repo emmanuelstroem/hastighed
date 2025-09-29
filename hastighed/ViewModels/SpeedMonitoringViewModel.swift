@@ -76,12 +76,17 @@ final class SpeedMonitoringViewModel: ObservableObject {
     // MARK: - Speed Limit Updates
     
     private func startSpeedLimitUpdates() {
-        // Update immediately
-        updateSpeedLimit()
+        // Update immediately on the main actor
+        Task { @MainActor in
+            self.updateSpeedLimit()
+        }
         
         // Set up timer to update every 2 seconds
         speedLimitUpdateTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.updateSpeedLimit()
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.updateSpeedLimit()
+            }
         }
     }
     
@@ -133,3 +138,4 @@ extension SpeedMonitoringViewModel {
         return SpeedMonitoringViewModel(locationService: MockLocation(), speedLimitService: MockLimit())
     }
 }
+

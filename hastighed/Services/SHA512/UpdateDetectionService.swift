@@ -69,7 +69,7 @@ public class UpdateDetectionService: ObservableObject {
                 }
                 
                 // Check file size difference (if we have remote file size)
-                if let localSize = downloadService.localFileSize(for: identifier) {
+                if let _ = downloadService.localFileSize(for: identifier) {
                     // For now, we'll skip size comparison since we don't have remote file sizes
                     // This could be added later if needed
                     sizeDiffers = false

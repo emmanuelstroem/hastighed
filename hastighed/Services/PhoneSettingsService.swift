@@ -19,7 +19,6 @@ public class PhoneSettingsService: ObservableObject {
     
     private let locationService: LocationService
     private var cancellables = Set<AnyCancellable>()
-    private let geocoder = CLGeocoder()
     
     // MARK: - Initialization
     
@@ -107,20 +106,25 @@ public class PhoneSettingsService: ObservableObject {
                         self.detectionError = "Unable to determine country"
                         return
                     }
-                    let placemark = mapItem.placemark
-                    guard let countryCode = placemark.isoCountryCode else {
+                    // iOS 26+: Use addressRepresentations
+                    if let address = mapItem.addressRepresentations {
+                        guard let countryCode = address.regionName else {
+                            self.detectionError = "Unable to determine country"
+                            return
+                        }
+                        self.currentCountryCode = countryCode
+                        self.currentCountryName = countryCode
+                        self.lastDetectionDate = Date()
+                        self.detectionError = nil
+                    } else {
                         self.detectionError = "Unable to determine country"
-                        return
                     }
-                    self.currentCountryCode = countryCode
-                    self.currentCountryName = placemark.country
-                    self.lastDetectionDate = Date()
-                    self.detectionError = nil
                 } catch {
                     self.detectionError = error.localizedDescription
                 }
             }
         } else {
+            let geocoder = CLGeocoder()
             geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
                 DispatchQueue.main.async {
                     guard let self else { return }

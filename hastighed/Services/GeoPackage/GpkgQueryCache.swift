@@ -95,3 +95,4 @@ struct GpkgCacheStats {
         return utilizationPercentage > 80.0
     }
 }
+

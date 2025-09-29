@@ -15,9 +15,9 @@ struct ContentView: View {
 
     init() {
         let locationService = LocationService()
-        let phoneCountryService = PhoneCountryDetectionService(locationService: locationService)
+        let phoneSettingsService = PhoneSettingsService(locationService: locationService)
         let connectivityService = ConnectivityService.shared
-        let limitService = SpeedLimitService(phoneCountryService: phoneCountryService, connectivityService: connectivityService)
+        let limitService = SpeedLimitService(phoneSettingsService: phoneSettingsService, connectivityService: connectivityService)
         let upcoming = MockUpcomingLimitProvider()
         let cameras = MockSpeedCameraProvider()
         let hazards = MockRoadHazardProvider()

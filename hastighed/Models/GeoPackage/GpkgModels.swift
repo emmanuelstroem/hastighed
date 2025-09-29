@@ -186,7 +186,7 @@ struct GpkgQueryConfig {
     let preferredTables: [String]
     let fallbackToCountryDefault: Bool
     
-    nonisolated(unsafe) static let `default` = GpkgQueryConfig(
+    static let `default` = GpkgQueryConfig(
         searchRadius: 5.0,
         maxResults: 1,
         includeGeometry: false,
@@ -276,3 +276,4 @@ extension GpkgSpeedLimitResult {
         return (roadSegment?.maxspeedConditional ?? trafficPoint?.maxspeedConditional) != nil
     }
 }
+

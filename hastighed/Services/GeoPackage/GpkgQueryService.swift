@@ -14,12 +14,12 @@ class GpkgQueryService {
     
     // MARK: - Initialization
     
-    @MainActor init(config: GpkgQueryConfig = .default) {
-        self.queryConfig = config
+    @MainActor init(config: GpkgQueryConfig? = nil) {
+        self.queryConfig = config ?? .default
     }
     
-    deinit {
-        Task { await self.closeDatabase() }
+    @MainActor deinit {
+        closeDatabase()
     }
     
     // MARK: - Database Management
@@ -431,3 +431,4 @@ private func distanceInMeters(from origin: CLLocationCoordinate2D, to destinatio
 
     return earthRadius * c
 }
+

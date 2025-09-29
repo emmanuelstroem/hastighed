@@ -81,7 +81,7 @@ public class DownloadService: ObservableObject {
         
         downloadRequest
             .downloadProgress { [weak self] progress in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.updateDownloadProgress(
                         datasetIdentifier: datasetIdentifier,
                         downloadedBytes: Int64(progress.completedUnitCount),
@@ -91,7 +91,7 @@ public class DownloadService: ObservableObject {
             }
             .validate()
             .response { [weak self] response in
-            Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.handleDownloadResponse(datasetIdentifier: datasetIdentifier, response: response)
                 }
             }
@@ -100,29 +100,29 @@ public class DownloadService: ObservableObject {
         downloadRequest.resume()
     }
     
-        /// Pause a download
-        public func pauseDownload(for datasetIdentifier: String) {
-            guard let downloadRequest = downloadTasks[datasetIdentifier] else {
-                return
-            }
-            
-            
-            // Update status to paused immediately
-            updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .paused)
-            
-            downloadRequest.cancel { [weak self] resumeData in
-                Task { @MainActor in
-                    if let data = resumeData {
-                        self?.resumeDataCache[datasetIdentifier] = data
-                        // Persist the resume data cache immediately
-                        self?.persistResumeDataCache()
-                    } else {
-                    }
-                    self?.downloadTasks.removeValue(forKey: datasetIdentifier)
-                    // Status is already set to paused above, no need to set it again
+    /// Pause a download
+    public func pauseDownload(for datasetIdentifier: String) {
+        guard let downloadRequest = downloadTasks[datasetIdentifier] else {
+            return
+        }
+        
+        
+        // Update status to paused immediately
+        updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .paused)
+        
+        downloadRequest.cancel { [weak self] resumeData in
+            Task { @MainActor [weak self] in
+                if let data = resumeData {
+                    self?.resumeDataCache[datasetIdentifier] = data
+                    // Persist the resume data cache immediately
+                    self?.persistResumeDataCache()
+                } else {
                 }
+                self?.downloadTasks.removeValue(forKey: datasetIdentifier)
+                // Status is already set to paused above, no need to set it again
             }
         }
+    }
     
     /// Resume a paused download
     public func resumeDownload(for datasetIdentifier: String) {
@@ -159,7 +159,7 @@ public class DownloadService: ObservableObject {
         
         downloadRequest
             .downloadProgress { [weak self] progress in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.updateDownloadProgress(
                         datasetIdentifier: datasetIdentifier,
                         downloadedBytes: Int64(progress.completedUnitCount),
@@ -169,7 +169,7 @@ public class DownloadService: ObservableObject {
             }
             .validate()
             .response { [weak self] response in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.handleDownloadResponse(datasetIdentifier: datasetIdentifier, response: response)
                 }
             }
@@ -260,19 +260,17 @@ public class DownloadService: ObservableObject {
             }
             
         case .failure(let error):
-            
             // Check if it's an explicit cancellation (pause) - don't treat as failure
-            if let afError = error as? AFError,
-               case .explicitlyCancelled = afError {
+            if case .explicitlyCancelled = error {
                 // Don't update status here - it should already be set to paused
                 return
             }
             
             // Check if it's a timeout error and provide better feedback
-            if let afError = error as? AFError,
-               case .sessionTaskFailed(let underlyingError) = afError,
+            if case .sessionTaskFailed(let underlyingError) = error,
                let urlError = underlyingError as? URLError,
                urlError.code == .timedOut {
+                // You may want to handle timeouts here
             }
             
             updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .failed)

@@ -23,7 +23,7 @@ final class SpeedLimitService: SpeedLimitProviding, ObservableObject {
     
     // MARK: - Private Properties
     
-    private let phoneCountryService: PhoneCountryDetectionService
+    private let phoneSettingsService: PhoneSettingsService
     private let connectivityService: ConnectivityService
     private let gpkgQueryService: GpkgQueryService
     private let downloadService: DownloadService
@@ -35,8 +35,8 @@ final class SpeedLimitService: SpeedLimitProviding, ObservableObject {
     
     // MARK: - Initialization
     
-    init(phoneCountryService: PhoneCountryDetectionService, connectivityService: ConnectivityService) {
-        self.phoneCountryService = phoneCountryService
+    init(phoneSettingsService: PhoneSettingsService, connectivityService: ConnectivityService) {
+        self.phoneSettingsService = phoneSettingsService
         self.connectivityService = connectivityService
         self.gpkgQueryService = GpkgQueryService()
         self.downloadService = DownloadService()
@@ -82,7 +82,7 @@ final class SpeedLimitService: SpeedLimitProviding, ObservableObject {
     
     private func setupObservers() {
         // Country observer
-        phoneCountryService.$currentCountryCode
+        phoneSettingsService.$currentCountryCode
             .sink { [weak self] countryCode in
                 Task { @MainActor in
                     await self?.handleCountryChange(to: countryCode)

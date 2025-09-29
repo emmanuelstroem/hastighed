@@ -109,7 +109,7 @@ public class OfflineMapsViewModel: ObservableObject {
         await withTaskGroup(of: Void.self) { group in
             for dataset in datasetListings {
                 group.addTask {
-                    await self.fetchRemoteFileSize(for: dataset.datasetIdentifier)
+                    _ = await self.fetchRemoteFileSize(for: dataset.datasetIdentifier)
                 }
             }
         }

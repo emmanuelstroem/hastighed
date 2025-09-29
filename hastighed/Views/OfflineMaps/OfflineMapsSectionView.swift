@@ -65,7 +65,6 @@ struct EuCountriesSheetView: View {
             .navigationTitle("EU Countries")
         }
         .onAppear {
-            print("🔍 EuCountriesSheetView onAppear - this should definitely show up!")
             viewModel.refreshAllStatuses()
             phoneSettingsService.startDetection()
         }

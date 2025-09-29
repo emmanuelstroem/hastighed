@@ -27,6 +27,7 @@ final class HomeViewModel: ObservableObject {
     @Published var tolerance: Double = 0 // kilometers
 
     private var cancellables = Set<AnyCancellable>()
+    private var speedLimitUpdateTimer: Timer?
 
     init(locationService: LocationServicing,
          speedLimitService: SpeedLimitProviding,
@@ -41,6 +42,7 @@ final class HomeViewModel: ObservableObject {
         bind()
         updateDebugSnapshot()
         locationService.start()
+        startSpeedLimitUpdates()
     }
 
     private func bind() {
@@ -55,12 +57,22 @@ final class HomeViewModel: ObservableObject {
             .sink { [weak self] reading in
                 guard let self else { return }
                 speedReading = reading
-                let limit = speedLimitService.currentSpeedLimit(for: locationService.latestLocation)
-                speedLimit = limit
                 refreshContext()
                 updateDebugSnapshot()
             }
             .store(in: &cancellables)
+        
+        // Subscribe to speed limit changes from the service
+        if let speedLimitService = speedLimitService as? SpeedLimitService {
+            speedLimitService.$currentSpeedLimit
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] newSpeedLimit in
+                    guard let self else { return }
+                    self.speedLimit = newSpeedLimit
+                    self.updateDebugSnapshot()
+                }
+                .store(in: &cancellables)
+        }
 
         locationService.authorizationPublisher
             .receive(on: DispatchQueue.main)
@@ -110,8 +122,29 @@ final class HomeViewModel: ObservableObject {
     func openSettings() {
         locationService.openAppSettings()
     }
-
-    // battery saver removed
+    
+    // MARK: - Speed Limit Updates
+    
+    private func startSpeedLimitUpdates() {
+        // Update immediately
+        updateSpeedLimit()
+        
+        // Set up timer to update every 2 seconds
+        speedLimitUpdateTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.updateSpeedLimit()
+        }
+    }
+    
+    private func updateSpeedLimit() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await speedLimitService.updateSpeedLimit(for: locationService.latestLocation)
+        }
+    }
+    
+    deinit {
+        speedLimitUpdateTimer?.invalidate()
+    }
 }
 
 extension HomeViewModel {
@@ -138,9 +171,11 @@ extension HomeViewModel {
             func requestAuthorization() { /* no-op in preview */ }
             func openAppSettings() { /* no-op in preview */ }
         }
+        let mockLocation = MockLocation()
+        let realLocationService = LocationService()
         return HomeViewModel(
-            locationService: MockLocation(),
-            speedLimitService: SpeedLimitService(),
+            locationService: mockLocation,
+            speedLimitService: SpeedLimitService(phoneCountryService: PhoneCountryDetectionService(locationService: realLocationService), connectivityService: ConnectivityService.shared),
             upcomingProvider: MockUpcomingLimitProvider(),
             cameraProvider: MockSpeedCameraProvider(),
             hazardProvider: MockRoadHazardProvider()

@@ -2,10 +2,11 @@ import Foundation
 import CoreLocation
 import MapKit
 import Combine
+import MapKit // Added for MKReverseGeocodingRequest
 
 /// Service for detecting the phone's current country/region from device settings
 @MainActor
-public class PhoneSettingsService: ObservableObject {
+public class PhoneCountryDetectionService: ObservableObject {
     
     // MARK: - Published Properties
     
@@ -36,6 +37,7 @@ public class PhoneSettingsService: ObservableObject {
         
         isDetecting = true
         detectionError = nil
+        
         
         // If we have a recent location, use it immediately
         if let location = locationService.latestLocation {

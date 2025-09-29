@@ -46,7 +46,6 @@ public class DownloadService: ObservableObject {
     public func startDownload(for datasetIdentifier: String) {
         guard let dataset = datasets.first(where: { $0.datasetIdentifier == datasetIdentifier }),
               let url = URL(string: dataset.remoteResourceAddress) else {
-            print("❌ DownloadService: Invalid dataset or URL for \(datasetIdentifier)")
             updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .failed, error: "Invalid dataset or URL")
             return
         }
@@ -54,11 +53,9 @@ public class DownloadService: ObservableObject {
         // If already downloading or completed, do nothing
         if let currentItem = downloadItemsByIdentifier[datasetIdentifier],
            [.downloading, .completed].contains(currentItem.downloadStatus) {
-            print("ℹ️ DownloadService: Download for \(datasetIdentifier) is already \(currentItem.downloadStatus.rawValue)")
             return
         }
         
-        print("🚀 DownloadService: Starting download for \(datasetIdentifier)")
         
         // Update status to downloading
         updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .downloading)
@@ -77,11 +74,9 @@ public class DownloadService: ObservableObject {
         if let resumeData = resumeDataCache[datasetIdentifier] {
             // Resume from existing data
             downloadRequest = session.download(resumingWith: resumeData, to: destination)
-            print("🔄 DownloadService: Resuming from data for \(datasetIdentifier)")
         } else {
             // Start new download
             downloadRequest = session.download(url, to: destination)
-            print("🆕 DownloadService: Starting new download for \(datasetIdentifier)")
         }
         
         downloadRequest
@@ -108,11 +103,9 @@ public class DownloadService: ObservableObject {
         /// Pause a download
         public func pauseDownload(for datasetIdentifier: String) {
             guard let downloadRequest = downloadTasks[datasetIdentifier] else {
-                print("⚠️ DownloadService: No active download to pause for \(datasetIdentifier)")
                 return
             }
             
-            print("⏸️ DownloadService: Pausing download for \(datasetIdentifier)")
             
             // Update status to paused immediately
             updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .paused)
@@ -121,11 +114,9 @@ public class DownloadService: ObservableObject {
                 Task { @MainActor in
                     if let data = resumeData {
                         self?.resumeDataCache[datasetIdentifier] = data
-                        print("💾 DownloadService: Saved resume data for \(datasetIdentifier)")
                         // Persist the resume data cache immediately
                         self?.persistResumeDataCache()
                     } else {
-                        print("⚠️ DownloadService: No resume data available for \(datasetIdentifier)")
                     }
                     self?.downloadTasks.removeValue(forKey: datasetIdentifier)
                     // Status is already set to paused above, no need to set it again
@@ -137,7 +128,6 @@ public class DownloadService: ObservableObject {
     public func resumeDownload(for datasetIdentifier: String) {
         guard let dataset = datasets.first(where: { $0.datasetIdentifier == datasetIdentifier }),
               let url = URL(string: dataset.remoteResourceAddress) else {
-            print("❌ DownloadService: Invalid dataset or URL for \(datasetIdentifier)")
             updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .failed, error: "Invalid dataset or URL")
             return
         }
@@ -145,11 +135,9 @@ public class DownloadService: ObservableObject {
         // If already downloading or completed, do nothing
         if let currentItem = downloadItemsByIdentifier[datasetIdentifier],
            [.downloading, .completed].contains(currentItem.downloadStatus) {
-            print("ℹ️ DownloadService: Download for \(datasetIdentifier) is already \(currentItem.downloadStatus.rawValue)")
             return
         }
         
-        print("▶️ DownloadService: Resuming download for \(datasetIdentifier)")
         
         updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .downloading)
         
@@ -165,10 +153,8 @@ public class DownloadService: ObservableObject {
         let downloadRequest: DownloadRequest
         if let resumeData = resumeDataCache[datasetIdentifier] {
             downloadRequest = session.download(resumingWith: resumeData, to: destination)
-            print("🔄 DownloadService: Resuming from data for \(datasetIdentifier)")
         } else {
             downloadRequest = session.download(url, to: destination)
-            print("⚠️ DownloadService: No resume data, starting new download for \(datasetIdentifier)")
         }
         
         downloadRequest
@@ -200,7 +186,6 @@ public class DownloadService: ObservableObject {
         do {
             if fileManager.fileExists(atPath: url.path) {
                 try fileManager.removeItem(at: url)
-                print("🗑️ DownloadService: Deleted local file for \(datasetIdentifier)")
             }
             // Also remove any resume data
             resumeDataCache.removeValue(forKey: datasetIdentifier)
@@ -208,7 +193,6 @@ public class DownloadService: ObservableObject {
             downloadTasks.removeValue(forKey: datasetIdentifier)
             updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .queued) // Reset status
         } catch {
-            print("❌ DownloadService: Error deleting file for \(datasetIdentifier): \(error)")
             updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .failed, error: error.localizedDescription)
         }
     }
@@ -229,6 +213,11 @@ public class DownloadService: ObservableObject {
         } catch {
             return nil
         }
+    }
+    
+    /// Get the local file path for a dataset
+    public func localFilePath(for datasetIdentifier: String) -> String? {
+        return storageURL(for: datasetIdentifier)?.path
     }
     
     
@@ -265,20 +254,16 @@ public class DownloadService: ObservableObject {
         switch response.result {
         case .success(let url):
             if let url = url, FileManager.default.fileExists(atPath: url.path) {
-                print("✅ DownloadService: Download completed successfully for \(datasetIdentifier)")
                 updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .completed)
             } else {
-                print("❌ DownloadService: Download completed but file not found for \(datasetIdentifier)")
                 updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .failed)
             }
             
         case .failure(let error):
-            print("❌ DownloadService: Download failed for \(datasetIdentifier): \(error)")
             
             // Check if it's an explicit cancellation (pause) - don't treat as failure
             if let afError = error as? AFError,
                case .explicitlyCancelled = afError {
-                print("⏸️ DownloadService: Download was explicitly cancelled (paused) for \(datasetIdentifier)")
                 // Don't update status here - it should already be set to paused
                 return
             }
@@ -288,7 +273,6 @@ public class DownloadService: ObservableObject {
                case .sessionTaskFailed(let underlyingError) = afError,
                let urlError = underlyingError as? URLError,
                urlError.code == .timedOut {
-                print("⏰ DownloadService: Download timed out for \(datasetIdentifier) - this might be due to network issues or large file size")
             }
             
             updateDownloadStatus(datasetIdentifier: datasetIdentifier, status: .failed)
@@ -307,7 +291,6 @@ public class DownloadService: ObservableObject {
         let validIdentifiers = pausedIdentifiers.union(activeIdentifiers)
         
         resumeDataCache = resumeDataCache.filter { validIdentifiers.contains($0.key) }
-        print("🧹 DownloadService: Cleaned up orphaned resume data.")
     }
     
     // MARK: - Persistence
@@ -315,12 +298,10 @@ public class DownloadService: ObservableObject {
     private func loadPersistedState() {
         do {
             guard fileManager.fileExists(atPath: persistenceURL.path) else {
-                print("📱 DownloadService: Starting with fresh state")
                 return
             }
             let data = try Data(contentsOf: persistenceURL)
             downloadItemsByIdentifier = try JSONDecoder().decode([String: DownloadItem].self, from: data)
-            print("✅ DownloadService: Loaded persisted state.")
             
             // Load resume data cache
             loadResumeDataCache()
@@ -336,7 +317,6 @@ public class DownloadService: ObservableObject {
                 }
             }
         } catch {
-            print("❌ DownloadService: Error loading persisted state: \(error)")
             // Attempt to clean up corrupted file
             try? fileManager.removeItem(at: persistenceURL)
         }
@@ -346,12 +326,10 @@ public class DownloadService: ObservableObject {
         do {
             let data = try JSONEncoder().encode(downloadItemsByIdentifier)
             try data.write(to: persistenceURL, options: [.atomicWrite])
-            print("💾 DownloadService: Persisted download state.")
             
             // Also persist resume data cache
             persistResumeDataCache()
         } catch {
-            print("❌ DownloadService: Error persisting state: \(error)")
         }
     }
     
@@ -373,16 +351,13 @@ public class DownloadService: ObservableObject {
             let resumeDataStrings = resumeDataCache.mapValues { $0.base64EncodedString() }
             let data = try JSONEncoder().encode(resumeDataStrings)
             try data.write(to: resumeDataCacheURL, options: [.atomicWrite])
-            print("💾 DownloadService: Persisted resume data cache.")
         } catch {
-            print("❌ DownloadService: Error persisting resume data cache: \(error)")
         }
     }
     
     private func loadResumeDataCache() {
         do {
             guard fileManager.fileExists(atPath: resumeDataCacheURL.path) else {
-                print("📱 DownloadService: No resume data cache found")
                 return
             }
             let data = try Data(contentsOf: resumeDataCacheURL)
@@ -392,9 +367,7 @@ public class DownloadService: ObservableObject {
             resumeDataCache = resumeDataStrings.compactMapValues { base64String in
                 Data(base64Encoded: base64String)
             }
-            print("✅ DownloadService: Loaded resume data cache with \(resumeDataCache.count) items.")
         } catch {
-            print("❌ DownloadService: Error loading resume data cache: \(error)")
             // Attempt to clean up corrupted file
             try? fileManager.removeItem(at: resumeDataCacheURL)
         }

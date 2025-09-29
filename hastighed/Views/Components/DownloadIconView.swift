@@ -20,39 +20,23 @@ struct DownloadIconView: View {
     }
     
     var body: some View {
-        ZStack {
-            // Progress ring (only shown during download)
-            if shouldShowProgressRing {
-                Circle()
-                    .stroke(Color.primary.opacity(0.12), lineWidth: 3)
-                    .frame(width: 32, height: 32)
-                
-                Circle()
-                    .trim(from: 0, to: CGFloat(max(0, min(1, progressFraction))))
-                    .stroke(progressColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: 32, height: 32)
-            }
-            
-            // Main action button
-            Button(action: action) {
-                Image(systemName: iconName)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(iconColor)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(accessibilityLabel)
-            .accessibilityHint(accessibilityHint)
-            
-        }
-        .onAppear {
-            print("🔍 DownloadIconView onAppear - downloadStatus: \(downloadStatus?.rawValue ?? "nil"), localFileExists: \(localFileExists), progressFraction: \(progressFraction)")
-        }
-        .onChange(of: downloadStatus) { oldValue, newValue in
-            print("🔍 DownloadIconView downloadStatus changed - from: \(oldValue?.rawValue ?? "nil") to: \(newValue?.rawValue ?? "nil"), localFileExists: \(localFileExists)")
-        }
-        .onChange(of: localFileExists) { oldValue, newValue in
-            print("🔍 DownloadIconView localFileExists changed - from: \(oldValue) to: \(newValue), downloadStatus: \(downloadStatus?.rawValue ?? "nil")")
+        switch downloadStatus {
+        case .some(.downloading):
+            ProgressView(value: progressFraction)
+                .progressViewStyle(.circular)
+        case .some(.paused):
+            ProgressView(value: progressFraction)
+                .progressViewStyle(.circular)
+        case .some(.completed):
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+        case .some(.failed):
+            Image(systemName: "exclamationmark.circle")
+                .foregroundColor(.red)
+        case .some(.queued), .some(.canceled):
+            Image(systemName: "icloud.and.arrow.down")
+        case .none:
+            Image(systemName: localFileExists ? "checkmark.circle.fill" : "icloud.and.arrow.down")
         }
     }
     

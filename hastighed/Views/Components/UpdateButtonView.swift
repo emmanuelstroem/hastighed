@@ -59,29 +59,20 @@ public struct UpdateButtonView: View {
 struct UpdateButtonView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 20) {
-            // Update available, not checking
             UpdateButtonView(
                 isUpdateAvailable: true,
                 isCheckingForUpdates: false
-            ) {
-                print("Update tapped")
-            }
+            ) { }
             
-            // Update available, checking
             UpdateButtonView(
                 isUpdateAvailable: true,
                 isCheckingForUpdates: true
-            ) {
-                print("Update tapped")
-            }
+            ) { }
             
-            // No update available
             UpdateButtonView(
                 isUpdateAvailable: false,
                 isCheckingForUpdates: false
-            ) {
-                print("Update tapped")
-            }
+            ) { }
         }
         .padding()
         .previewLayout(.sizeThatFits)

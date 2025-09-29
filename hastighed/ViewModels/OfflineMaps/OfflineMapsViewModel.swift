@@ -98,7 +98,7 @@ public class OfflineMapsViewModel: ObservableObject {
                 return size
             }
         } catch {
-            print("⚠️ Failed to fetch remote file size for \(datasetIdentifier): \(error)")
+            return nil
         }
         
         return nil
